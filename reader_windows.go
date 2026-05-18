@@ -18,9 +18,8 @@ var (
 )
 
 const (
-	waitTimeoutCode = 0x00000102
-	infiniteWait    = 0xFFFFFFFF
-	maxRecordsRead  = 64
+	infiniteWait   = 0xFFFFFFFF
+	maxRecordsRead = 64
 )
 
 type coord struct {
@@ -76,6 +75,23 @@ func readConsoleInputW(h windows.Handle, recs []inputRecord) (int, error) {
 		return 0, syscall.EINVAL
 	}
 	return int(read), nil
+}
+
+// consoleViewportSize returns the current console viewport dimensions, read
+// from the screen buffer info's window rect. Returns ok=false if the syscall
+// fails or the stdout handle is not a console.
+func consoleViewportSize() (width, height int, ok bool) {
+	h, err := windows.GetStdHandle(windows.STD_OUTPUT_HANDLE)
+	if err != nil || h == 0 {
+		return 0, 0, false
+	}
+	var info windows.ConsoleScreenBufferInfo
+	if err := windows.GetConsoleScreenBufferInfo(h, &info); err != nil {
+		return 0, 0, false
+	}
+	return int(info.Window.Right - info.Window.Left + 1),
+		int(info.Window.Bottom - info.Window.Top + 1),
+		true
 }
 
 // stdinReader implements EventReader for Windows terminals by reading raw
@@ -136,7 +152,7 @@ func (r *stdinReader) PollEvent(timeout time.Duration) (Event, bool) {
 		return nil, false
 	}
 	switch waited {
-	case waitTimeoutCode:
+	case uint32(windows.WAIT_TIMEOUT):
 		return nil, false
 	case windows.WAIT_OBJECT_0:
 		// stdin signaled; fall through to read records.
@@ -241,11 +257,21 @@ func (r *stdinReader) decodeRecord(rec *inputRecord) {
 			r.pending = append(r.pending, ev)
 		}
 	case windows.WINDOW_BUFFER_SIZE_EVENT:
-		wev := (*windowBufferSizeRecord)(unsafe.Pointer(&rec.data))
-		r.pending = append(r.pending, ResizeEvent{
-			Width:  int(wev.size.X),
-			Height: int(wev.size.Y),
-		})
+		// dwSize on the record reports the *buffer* dimensions, which on
+		// legacy cmd.exe can be larger than the visible viewport. Read the
+		// viewport rect from the screen buffer info to get the true visible
+		// area, matching terminal_windows.go's getTerminalSize.
+		if w, h, ok := consoleViewportSize(); ok {
+			r.pending = append(r.pending, ResizeEvent{Width: w, Height: h})
+		} else {
+			// Fall back to dwSize if the syscall fails. Better an approximate
+			// resize event than none at all.
+			wev := (*windowBufferSizeRecord)(unsafe.Pointer(&rec.data))
+			r.pending = append(r.pending, ResizeEvent{
+				Width:  int(wev.size.X),
+				Height: int(wev.size.Y),
+			})
+		}
 	}
 }
 
@@ -372,7 +398,7 @@ func (r *stdinReader) translateMouseEvent(mev *mouseEventRecord) (MouseEvent, bo
 	switch {
 	case mev.eventFlags&windows.MOUSE_WHEELED != 0:
 		// High word of buttonState is the signed wheel delta; positive = up.
-		if int32(mev.buttonState) > 0 {
+		if int16(mev.buttonState>>16) > 0 {
 			ev.Button = MouseWheelUp
 		} else {
 			ev.Button = MouseWheelDown

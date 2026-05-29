@@ -242,6 +242,34 @@ func renderClippedElement(buf *Buffer, e *Element, clipRect Rect, scrollX, scrol
 		}
 	}
 
+	// Render rich text with clipping (parallel to the plain-text block below).
+	// An element has either plain text or rich text, never both.
+	if len(e.richText) > 0 {
+		textBaseX := screenX + e.style.Padding.Left
+		textBaseY := screenY + e.style.Padding.Top
+		if e.border != BorderNone {
+			textBaseX += 1
+			textBaseY += 1
+		}
+		availTextWidth := childRect.Width - e.style.Padding.Horizontal()
+		if e.border != BorderNone {
+			availTextWidth -= 2
+		}
+
+		ts := rc.textStyle
+		if rc.bg != nil && !rc.bg.Bg.IsDefault() {
+			ts.Bg = rc.bg.Bg
+		}
+
+		var spanLines [][]TextSpan
+		if !e.noWrap && availTextWidth > 0 {
+			spanLines = wrapSpans(e.richText, availTextWidth)
+		} else {
+			spanLines = [][]TextSpan{e.richText}
+		}
+		drawSpanLines(buf, spanLines, textBaseX, textBaseY, availTextWidth, e.textAlign, ts, clipRect)
+	}
+
 	// Render text with clipping
 	if e.text != "" {
 		textBaseX := screenX + e.style.Padding.Left

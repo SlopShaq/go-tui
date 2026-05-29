@@ -4,6 +4,32 @@ import (
 	"testing"
 )
 
+func TestRichText_RendersInsideScrollableContainer(t *testing.T) {
+	buf := NewBuffer(20, 5)
+	child := New(
+		WithSize(10, 1),
+		WithRichText(
+			TextSpan{Text: "ab"},
+			TextSpan{Text: "cd", Style: NewStyle().Bold()},
+		),
+	)
+	container := New(
+		WithSize(12, 3),
+		WithScrollable(ScrollVertical),
+	)
+	container.AddChild(child)
+	container.Calculate(20, 5)
+	RenderTree(buf, container)
+
+	// Text must appear (this is the bug the spec warns about).
+	if got := buf.Cell(0, 0).Rune; got != 'a' {
+		t.Errorf("rich text not rendered in scroll container: cell(0,0)=%q, want 'a'", got)
+	}
+	if buf.Cell(2, 0).Style.Attrs&AttrBold == 0 {
+		t.Errorf("cell(2,0) should be bold inside scroll container")
+	}
+}
+
 func TestRenderTree_RichTextStylesPerSegment(t *testing.T) {
 	buf := NewBuffer(20, 3)
 	e := New(

@@ -1,8 +1,17 @@
 # Markdown Component Design
 
 - Date: 2026-05-29
-- Status: Approved (design); pending implementation plan
+- Status: Approved (design); revised after technical review; pending implementation plan
 - Issue: [#62 markdown support](https://github.com/grindlemire/go-tui/issues/62)
+
+> Revision note: a technical review verified against the renderer found that text
+> rendering is gated on `e.text != ""` in three separate places (normal render,
+> clipped/scroll render, and layout measurement), that no-wrap multiline text
+> collapses to a single line, that OSC 8 must thread through the cell-diff/Flush
+> path rather than `bufferRowToANSI` alone, that cached component elements need
+> `PropsUpdater`, and that gsx cannot type-discriminate expressions. Full scope
+> (lists, blockquotes, setext, links via OSC 8) is retained by decision; the spec
+> below incorporates the correctness fixes.
 
 ## Summary
 
@@ -44,7 +53,7 @@ The work divides into five layers, each independently testable:
 
 ```
 Layer 1  Rich-text primitive            (tui package: TextSpan, wrapping, render, measure)
-Layer 2  OSC 8 hyperlink support        (tui package: Cell, escape, ANSI emit)
+Layer 2  OSC 8 hyperlink support        (tui package: Cell, buffer Diff, Flush, escape)
 Layer 3  Markdown parser                (internal/markdown: zero-dep, recursive block tree)
 Layer 4  Markdown component             (tui package: markdown.go, markdown_options.go, theme)
 Layer 5  gsx integration                (tuigen generator, analyzer, LSP schema, testdata)
@@ -70,10 +79,20 @@ type TextSpan struct {
 // WithRichText sets styled, multi-segment text on an element. When set it takes
 // precedence over WithText. Wrapping and alignment behave as for plain text.
 func WithRichText(spans ...TextSpan) Option
+
+// Mutation + accessor, mirroring SetText/Text:
+func (e *Element) SetRichText(spans ...TextSpan)
+func (e *Element) RichText() []TextSpan
 ```
 
 `Element` gains a `richText []TextSpan` field alongside `text`. When `richText`
-is non-nil it is the source of truth for text rendering and measurement.
+is non-empty it is the source of truth for text rendering and measurement.
+
+Precedence and clearing semantics (so the two fields never disagree):
+
+- `SetRichText`/`WithRichText` clears `text`.
+- `SetText`/`WithText` clears `richText`.
+- If both are somehow set, `richText` wins.
 
 ### Style-merge semantics
 
@@ -98,38 +117,67 @@ mirroring `wrapParagraph`'s word-packing algorithm:
 - Adjacent same-style segments on a line are merged to keep lines compact.
 - Existing newlines split paragraphs, as in `wrapText`.
 
-### Rendering
+### Rendering (three call sites, not one)
 
-Add a rich-text branch to `renderTextContent` (`element_render.go`). The existing
-per-cell loop used by the text-gradient path already walks runes and calls
-`buf.SetRune(x, y, r, style)` with a computed style. The rich-text branch reuses
-that loop, supplying each segment's merged style instead of a gradient color.
-Per-line alignment, truncation, and the scroll/offset logic operate on line
+Text rendering currently lives in three places, each gated on `e.text != ""` and
+each with its own copy of the wrap/align/per-cell logic:
+
+1. `renderElement` -> `renderTextContent` (`element_render.go:137`), normal pass.
+2. `renderClippedElement` (`element_render.go:246`), the scroll/clip pass, with a
+   fully duplicated text loop. **This is why callers wrapping markdown in a
+   scrollable container would otherwise see nothing** unless rich text is wired
+   in here too.
+3. `element_layout.go:89`, the intrinsic-measurement path.
+
+All three gates must also fire on `len(e.richText) > 0`, and all three must
+render/measure spans. The existing per-cell loops (used today by the text-gradient
+path) already walk runes calling `buf.SetRune(x, y, r, style)`; the rich-text
+branch reuses that loop, supplying each segment's merged style instead of a
+gradient color. Per-line alignment, truncation, and scroll offset operate on line
 counts and carry over unchanged.
 
-### Measurement (flagged risk)
+Because we are adding a second branch to three near-identical copies, the
+implementation extracts the shared text layout (wrap -> lines -> per-line
+align -> per-cell emit) into one helper consumed by all three sites. This is a
+targeted refactor of code we are already editing, not a speculative one.
 
-Auto-width rich text must report an intrinsic width equal to its concatenated
-segment text so table cells and inline contexts size correctly. The exact
-integration point in `element_layout.go` / `internal/layout` is resolved during
-planning and is the primary technical risk. A short spike confirms plain-text
-sizing does not regress.
+### Measurement
+
+Auto-width rich text must report intrinsic size from its spans. Today
+`element_layout.go:89-91` measures plain text as `stringWidth(e.text)` wide and a
+hard-coded `1` row. The rich-text path computes width from the concatenated span
+text and height from `wrapSpans` at the resolved content width (matching how the
+wrapped plain-text height is computed at `element_layout.go:208`). A short spike
+confirms plain-text sizing does not regress; this is the primary technical risk.
 
 ## Layer 2: OSC 8 hyperlinks
 
 Links render as styled text and, on capable terminals, as real clickable
 hyperlinks via the OSC 8 escape sequence. On other terminals the text is still
-shown styled and the URL is simply inert.
+shown styled and the URL is inert.
 
-- `Cell` gains an optional link target (string or interned id) so the ANSI
-  emitter knows where hyperlink runs start and end.
-- `bufferRowToANSI` / the escape builder (`escape.go`, `render_element.go`)
-  wraps contiguous cells sharing a link target in `OSC 8 ; ; URL ST ... OSC 8 ; ; ST`.
-- Capability gating reuses the `caps.go` detection approach; when unsupported the
-  emitter omits the escape and only the style is applied.
+This is the largest framework change in the design because the live render path
+is `Render -> buf.Diff() -> Terminal.Flush([]CellChange)` (`render.go:8`,
+`terminal_ansi.go:78`), driven by per-cell diffing, not by `bufferRowToANSI`
+(which only serves the standalone/`PrintAbove` path). Link state must therefore
+travel with the cell through the whole pipeline:
+
+- `Cell` gains a link target (interned id into a per-buffer URL table, so cell
+  copies/comparisons stay cheap; the table maps id -> URL).
+- `Cell` equality / diff must include the link id, so a link appearing or
+  changing produces a `CellChange`. This touches `cell.go`, `buffer.go` Diff, and
+  the `CellChange` type.
+- `ANSITerminal.Flush` tracks the current link id across emitted cells and opens
+  `OSC 8 ; ; URL ST` when entering a run and closes with `OSC 8 ; ; ST` when
+  leaving it (or when a non-contiguous jump occurs). The standalone
+  `bufferRowToANSI` path (`render_element.go`) gets the same run handling.
+- Capability gating reuses `caps.go`; when unsupported, `Flush` omits the escape
+  and applies style only.
+- `MockTerminal` records link runs so golden tests can assert them.
 
 This layer is general framework functionality; markdown links are its first
-consumer via `TextSpan.Link`.
+consumer via `TextSpan.Link`. Risk: Flush is the hottest path in the renderer, so
+the link-run state machine must add no work when no cell carries a link.
 
 ## Layer 3: Markdown parser (`internal/markdown`)
 
@@ -207,10 +255,21 @@ type Markdown struct {
 }
 
 var (
-    _ Component = (*Markdown)(nil)
-    _ AppBinder = (*Markdown)(nil) // only when state-backed
+    _ Component    = (*Markdown)(nil)
+    _ AppBinder    = (*Markdown)(nil)
+    _ PropsUpdater = (*Markdown)(nil)
 )
 ```
+
+Component elements are cached via `mount`/`MountPersistent`, which calls
+`UpdateProps` on the cached instance when present (`mount.go:69`). So `Markdown`
+must implement `PropsUpdater`: `UpdateProps(fresh)` copies the new source, width,
+and theme from the freshly-constructed instance, otherwise `<markdown source={expr}/>`
+renders stale content when `expr` changes.
+
+`BindApp` is implemented unconditionally (interfaces are type-level in Go, so it
+cannot be "only when state-backed"); it binds the `*State[string]` when one is
+present and is a no-op otherwise.
 
 `Render` resolves the current source (state takes precedence when set), parses it
 (or returns the cached tree when the source is unchanged), and walks the block
@@ -224,10 +283,21 @@ tree into a `flex-col` `*Element` root.
 | Paragraph    | `WithRichText(spans)` styled by `theme.Paragraph`                        |
 | Inline code  | a `TextSpan` styled by `theme.CodeSpan`                                  |
 | Link         | a `TextSpan` styled by `theme.Link` with `Link` set                     |
-| Code fence   | bordered/`bg` element, `WithWrap(false)`, plain text                     |
+| Code fence   | bordered/`bg` `flex-col`, **one child element per line** (`WithWrap(false)`, see note) |
 | Table        | existing `<table>/<tr>/<th>/<td>` element tree; each cell is rich text   |
 | List         | `flex-col`; each item prefixed `theme.BulletMarker` or `"N. "`, indented per depth |
-| Blockquote   | left bar (border) + indent + `theme.Blockquote` text style, recursive    |
+| Blockquote   | `flex-row`: a styled bar column + indented content `flex-col` (see note), recursive |
+
+Code fences must not use a single multiline `WithText`: the no-wrap text path
+collapses to one line (`element_render.go:263`) and measures as height 1
+(`element_layout.go:91`). Each source line becomes its own child element inside a
+bordered/`bg` column. (Once multiline no-wrap text is supported framework-wide,
+this can collapse to a single element; that is future work, not v1.)
+
+Blockquotes cannot use a `BorderStyle` for the left bar: borders draw a full box
+(`DrawBox`). The bar is a 1-cell-wide child column filled with the bar glyph
+(`theme.BlockquoteBar`, e.g. `│`) styled by `theme.BlockquoteBarStyle`, placed in
+a `flex-row` beside the indented, recursively-rendered content.
 
 ### Options
 
@@ -260,13 +330,20 @@ type MarkdownTheme struct {
 
     CodeBlockText   Style
     CodeBlockBg     Color
-    CodeBlockBorder BorderStyle
+    CodeBlockBorder BorderStyle // full box around the code element; this one is a real border
 
-    TableBorder BorderStyle
-    TableHeader Style
+    // Tables use the existing table layout, which draws a 1-char column gap, not
+    // grid lines. v1 styles the header and an optional separator row rather than
+    // a grid border. A fully bordered table is future work.
+    TableHeader        Style
+    TableSeparator     bool  // draw a "---" separator row under the header
+    TableSeparatorChar rune  // e.g. '-'
 
-    BlockquoteBar  BorderStyle // left bar
-    BlockquoteText Style
+    // Blockquotes render a 1-wide glyph column, not a BorderStyle (borders are
+    // full boxes).
+    BlockquoteBar      rune  // e.g. '│'
+    BlockquoteBarStyle Style
+    BlockquoteText     Style
 
     BulletMarker string      // e.g. "• "
 }
@@ -277,11 +354,11 @@ type MarkdownTheme struct {
 Expose a self-closing `<markdown>` tag fed by an expression attribute.
 
 - `internal/tuigen/generator_element.go`: add `markdown` to `isComponentElement`,
-  map it to `tui.NewMarkdown` in `componentConstructor`, and add an attribute map
-  (`source`, `value`, `width`, `theme`). `value`/`source` accept a string literal
-  or a `*State[string]` expression; the generator distinguishes them and emits
-  `WithMarkdownSource` vs `WithMarkdownState`. Exact discrimination rule is
-  finalized in the plan.
+  map it to `tui.NewMarkdown` in `componentConstructor`, and add an attribute map.
+  The generator cannot type-check arbitrary Go expressions, so the source kind is
+  expressed by **distinct attributes** rather than inferred:
+  `source={stringExpr}` emits `WithMarkdownSource`, `state={stateExpr}` emits
+  `WithMarkdownState`. There is no `value` attribute. Plus `width` and `theme`.
 - `internal/tuigen/analyzer.go`: add `markdown` to `knownTags`, mark it
   self-closing/void (children rejected).
 - `internal/lsp/schema/schema.go`: add the element definition with attribute
@@ -293,7 +370,7 @@ Usage:
 
 ```gsx
 <markdown source={readme} width={80} />
-<markdown value={mdState} />
+<markdown state={mdState} />
 ```
 
 ## Testing strategy
@@ -315,16 +392,18 @@ Usage:
 These are implementation-level and are answered by reading the relevant code
 while writing the plan. They do not change the public design above.
 
-1. Measurement integration point for rich-text intrinsic width
-   (`element_layout.go` / `internal/layout`). Flagged as the primary risk; a
-   spike confirms no plain-text regression.
+1. The exact signature/placement of the shared text-layout helper extracted from
+   the three current text sites, and confirming the spike shows no plain-text
+   render or sizing regression. (Primary risk.)
 2. Parse-cache invalidation hook for state-backed content.
-3. Confirming `<td>`/`<th>` intrinsic sizing works when fed `richText`.
+3. Confirming `<td>`/`<th>` intrinsic sizing works when fed `richText` (uses the
+   same measurement path as #1).
 4. Code-block overflow: fixed to content width, wrap disabled, horizontal scroll
    left to the caller's container.
-5. The `Cell` link representation (inline string vs interned id) for OSC 8.
-6. Generator discrimination between string-literal and `*State[string]`
-   attribute expressions.
+5. The per-buffer URL intern-table lifecycle (allocation, reset on resize) for
+   OSC 8 link ids, and how `CellChange` carries the link id.
+6. Whether `BlockquoteBar`/`BulletMarker` defaults need width-aware handling for
+   wide glyphs.
 
 ## Future work
 

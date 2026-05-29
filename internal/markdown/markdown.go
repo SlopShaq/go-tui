@@ -132,6 +132,10 @@ func isSetextUnderline(s string, ch byte) bool {
 
 func parseParagraphOrSetext(lines []string, i int) (Block, int) {
 	// Single-line setext: a text line followed by an all-'=' or all-'-' underline.
+	// NOTE: only single-line setext headings are recognized. CommonMark allows the
+	// heading text to span multiple lines before the underline; this parser does
+	// not, so a wrapped title followed by "===" renders as a paragraph that
+	// includes the literal underline. This is an accepted subset limitation.
 	if i+1 < len(lines) {
 		if isSetextUnderline(lines[i+1], '=') {
 			return Block{Kind: KindHeading, Level: 1, Inline: parseInline(strings.TrimSpace(lines[i]))}, i + 2

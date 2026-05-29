@@ -44,6 +44,21 @@ func TestParseInline(t *testing.T) {
 			in:   "[oops",
 			want: []Inline{{Text: "[oops"}},
 		},
+		"unmatched bold is literal": {
+			in:   "see **docs",
+			want: []Inline{{Text: "see **docs"}},
+		},
+		"unmatched italic is literal": {
+			in:   "foo *bar baz",
+			want: []Inline{{Text: "foo *bar baz"}},
+		},
+		"closed bold then stray italic stays literal": {
+			in: "**a** *b",
+			want: []Inline{
+				{Text: "a", Bold: true},
+				{Text: " *b"},
+			},
+		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {

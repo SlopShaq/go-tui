@@ -41,14 +41,40 @@ func parseInline(s string) []Inline {
 			buf = append(buf, r)
 			i++
 		case r == '*' || r == '_':
-			flush()
+			// Only toggle emphasis when a matching closer exists ahead; an
+			// unmatched delimiter (e.g. "see **docs") stays literal so a stray
+			// marker doesn't style the rest of the text.
 			if i+1 < len(rs) && rs[i+1] == r {
-				bold = !bold
+				if bold { // closing an open bold run
+					flush()
+					bold = false
+					i += 2
+					continue
+				}
+				if hasDelimCloser(rs, i+2, r, true) {
+					flush()
+					bold = true
+					i += 2
+					continue
+				}
+				buf = append(buf, r, r)
 				i += 2
-			} else {
-				italic = !italic
-				i++
+				continue
 			}
+			if italic { // closing an open italic run
+				flush()
+				italic = false
+				i++
+				continue
+			}
+			if hasDelimCloser(rs, i+1, r, false) {
+				flush()
+				italic = true
+				i++
+				continue
+			}
+			buf = append(buf, r)
+			i++
 		default:
 			buf = append(buf, r)
 			i++
@@ -56,6 +82,25 @@ func parseInline(s string) []Inline {
 	}
 	flush()
 	return out
+}
+
+// hasDelimCloser reports whether a matching emphasis delimiter appears at or
+// after start: a doubled run (e.g. "**") when double is true, otherwise a single
+// occurrence of r.
+func hasDelimCloser(rs []rune, start int, r rune, double bool) bool {
+	for j := start; j < len(rs); j++ {
+		if rs[j] != r {
+			continue
+		}
+		if double {
+			if j+1 < len(rs) && rs[j+1] == r {
+				return true
+			}
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 // parseLink parses [label](url) at rs[0]=='['. Returns label, url, runes consumed, ok.

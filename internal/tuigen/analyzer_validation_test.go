@@ -248,6 +248,55 @@ templ Test() {
 	}
 }
 
+func TestAnalyzer_MarkdownValid(t *testing.T) {
+	type tc struct {
+		input         string
+		wantError     bool
+		errorContains string
+	}
+
+	tests := map[string]tc{
+		"markdown self-closing with source/width": {
+			input: `package x
+templ (c *view) Render() {
+	<markdown source={c.readme} width={80} />
+}`,
+			wantError: false,
+		},
+		"markdown with state attr": {
+			input: `package x
+templ (c *view) Render() {
+	<markdown state={c.md} />
+}`,
+			wantError: false,
+		},
+		"markdown is void": {
+			input: `package x
+templ (c *view) Render() {
+	<markdown source={c.readme}>oops</markdown>
+}`,
+			wantError:     true,
+			errorContains: "<markdown> is a void element and cannot have children",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := AnalyzeFile("test.gsx", tt.input)
+			if tt.wantError {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), tt.errorContains) {
+					t.Errorf("error %q should contain %q", err.Error(), tt.errorContains)
+				}
+			} else if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 func TestAnalyzer_VoidWithChildren(t *testing.T) {
 	type tc struct {
 		input         string

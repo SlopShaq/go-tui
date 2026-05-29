@@ -116,8 +116,10 @@ func wrapSpans(spans []TextSpan, maxWidth int) [][]TextSpan {
 			}
 		}
 	}
-	// emitSpace appends a single separator space (default style; it merges to the
-	// element's base style at render time).
+	// emitSpace appends a single separator space. Deliberate choice: separators
+	// carry the default (zero) style so they inherit the element's base style at
+	// render time, rather than the adjacent word's style. This keeps inter-word
+	// gaps neutral (e.g. the space after a bold word is not itself bold).
 	emitSpace := func() {
 		if n := len(cur); n > 0 && cur[n-1].Style == (Style{}) {
 			cur[n-1].Text += " "
@@ -172,7 +174,9 @@ func wrapSpans(spans []TextSpan, maxWidth int) [][]TextSpan {
 			case '\n':
 				placeWord()
 				flush()
-			case ' ', '\t':
+			case ' ', '\t', '\r', '\v', '\f':
+				// All non-newline whitespace separates words but does not break
+				// the line; only '\n' starts a new line.
 				placeWord()
 			default:
 				word = append(word, styledRune{r: r, st: sp.Style})

@@ -129,3 +129,114 @@ func TestWrapSpans_Empty(t *testing.T) {
 		t.Errorf("empty spans should give one empty line, got %+v", got)
 	}
 }
+
+// joinSpanLine concatenates a wrapped line's segment texts into one string.
+func joinSpanLine(line []TextSpan) string {
+	s := ""
+	for _, seg := range line {
+		s += seg.Text
+	}
+	return s
+}
+
+// hasControlRune reports whether any segment text contains a control rune that
+// should never survive wrapping (CR, VT, FF, or a literal newline).
+func hasControlRune(lines [][]TextSpan) bool {
+	for _, line := range lines {
+		for _, seg := range line {
+			for _, r := range seg.Text {
+				switch r {
+				case '\r', '\v', '\f', '\n':
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func TestWrapSpans_ExoticWhitespaceDoesNotLeak(t *testing.T) {
+	// '\r' is a word separator (like a space), '\n' is a hard line break.
+	// "a\r\nb" must wrap to clean ["a"] ["b"] with no stray control runes.
+	lines := wrapSpans([]TextSpan{{Text: "a\r\nb"}}, 10)
+	if hasControlRune(lines) {
+		t.Fatalf("control rune leaked into output: %+v", lines)
+	}
+	if len(lines) != 2 {
+		t.Fatalf("want 2 lines, got %d: %+v", len(lines), lines)
+	}
+	if len(lines[0]) != 1 || lines[0][0].Text != "a" {
+		t.Errorf("line 0 = %+v, want single segment \"a\"", lines[0])
+	}
+	if len(lines[1]) != 1 || lines[1][0].Text != "b" {
+		t.Errorf("line 1 = %+v, want single segment \"b\"", lines[1])
+	}
+}
+
+func TestWrapSpans_VerticalTabAndFormFeedAreSeparators(t *testing.T) {
+	// '\v' and '\f' separate words but do NOT break the line.
+	lines := wrapSpans([]TextSpan{{Text: "a\vb\fc"}}, 20)
+	if hasControlRune(lines) {
+		t.Fatalf("control rune leaked into output: %+v", lines)
+	}
+	if len(lines) != 1 {
+		t.Fatalf("want 1 line (no line break), got %d: %+v", len(lines), lines)
+	}
+	// Three words joined by single separator spaces on one line.
+	if got := spanLineWidth(lines[0]); got != 5 { // "a b c"
+		t.Errorf("line width = %d, want 5", got)
+	}
+}
+
+func TestWrapSpans_SpanBoundaryIsNotWordBoundary_HardBreak(t *testing.T) {
+	// "ab"+"cd" is the single logical word "abcd". At width 3 it must hard-break
+	// by rune (["abc"] ["d"]), NOT split at the span seam (["ab"] ["cd"]).
+	lines := wrapSpans([]TextSpan{{Text: "ab"}, {Text: "cd"}}, 3)
+	if len(lines) != 2 {
+		t.Fatalf("want 2 lines, got %d: %+v", len(lines), lines)
+	}
+	if joinSpanLine(lines[0]) != "abc" || joinSpanLine(lines[1]) != "d" {
+		t.Errorf("got %q / %q, want \"abc\" / \"d\" (hard break, not seam split)",
+			joinSpanLine(lines[0]), joinSpanLine(lines[1]))
+	}
+}
+
+func TestWrapSpans_StylePreservedAcrossHardBreak(t *testing.T) {
+	// "go"(plain)+"lang"(bold) is one 6-wide word "golang". At width 4 it
+	// hard-breaks mid-word ("gola" / "ng") with bold preserved on every bold rune.
+	bold := NewStyle().Bold()
+	lines := wrapSpans([]TextSpan{{Text: "go"}, {Text: "lang", Style: bold}}, 4)
+	if len(lines) != 2 {
+		t.Fatalf("want 2 lines, got %d: %+v", len(lines), lines)
+	}
+	if joinSpanLine(lines[0]) != "gola" || joinSpanLine(lines[1]) != "ng" {
+		t.Fatalf("got %q / %q, want \"gola\" / \"ng\"", joinSpanLine(lines[0]), joinSpanLine(lines[1]))
+	}
+	// Check style by segment (the rune 'g' appears in both the plain "go" and the
+	// bold "lang", so we must assert per segment, not per rune):
+	//   line 0: [{"go", plain}, {"la", bold}]
+	//   line 1: [{"ng", bold}]
+	if len(lines[0]) != 2 || lines[0][0].Text != "go" || lines[0][0].Style.Attrs&AttrBold != 0 {
+		t.Errorf("line 0 seg 0 should be plain \"go\", got %+v", lines[0])
+	}
+	if len(lines[0]) != 2 || lines[0][1].Text != "la" || lines[0][1].Style.Attrs&AttrBold == 0 {
+		t.Errorf("line 0 seg 1 should be bold \"la\", got %+v", lines[0])
+	}
+	if len(lines[1]) != 1 || lines[1][0].Text != "ng" || lines[1][0].Style.Attrs&AttrBold == 0 {
+		t.Errorf("line 1 should be bold \"ng\", got %+v", lines[1])
+	}
+}
+
+func TestWrapSpans_WideRuneHardBreakDoesNotOverflow(t *testing.T) {
+	if RuneWidth('世') != 2 {
+		t.Fatalf("precondition: expected '世' to be width 2, got %d", RuneWidth('世'))
+	}
+	// "世界世" is one 6-wide word. At width 3 no line may exceed maxWidth, and a
+	// width-2 rune must not be split across lines.
+	lines := wrapSpans([]TextSpan{{Text: "世界世"}}, 3)
+	for i, line := range lines {
+		if w := spanLineWidth(line); w > 3 {
+			t.Errorf("line %d width = %d, overflows maxWidth 3: %+v", i, w, line)
+		}
+	}
+}

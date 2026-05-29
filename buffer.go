@@ -145,6 +145,18 @@ func (b *Buffer) SetRune(x, y int, r rune, style Style) {
 	}
 }
 
+// SetRuneLink sets a rune like SetRune and, when link is non-empty, attaches it
+// as the cell's OSC 8 hyperlink target. Wide-character handling matches SetRune.
+func (b *Buffer) SetRuneLink(x, y int, r rune, style Style, link string) {
+	b.SetRune(x, y, r, style)
+	if link == "" {
+		return
+	}
+	if idx := b.idx(x, y); idx >= 0 {
+		b.back[idx].Link = link
+	}
+}
+
 // clearWideCharAt clears a wide character that includes position (x, y).
 // If (x, y) is a continuation cell, finds and clears the originating cell.
 // If (x, y) is a wide char start, clears it and its continuation.

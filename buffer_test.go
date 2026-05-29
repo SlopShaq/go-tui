@@ -536,3 +536,16 @@ func TestBuffer_FillGradient(t *testing.T) {
 		})
 	}
 }
+
+func TestSetRuneLink(t *testing.T) {
+	buf := NewBuffer(4, 1)
+	buf.SetRuneLink(0, 0, 'a', NewStyle(), "https://example.com")
+	if got := buf.Cell(0, 0); got.Rune != 'a' || got.Link != "https://example.com" {
+		t.Errorf("got rune=%q link=%q, want 'a' / the URL", got.Rune, got.Link)
+	}
+	// Empty link leaves Link clear (and still writes the rune).
+	buf.SetRuneLink(1, 0, 'b', NewStyle(), "")
+	if got := buf.Cell(1, 0); got.Rune != 'b' || got.Link != "" {
+		t.Errorf("got rune=%q link=%q, want 'b' / empty", got.Rune, got.Link)
+	}
+}

@@ -26,6 +26,8 @@ type Capabilities struct {
 	AltScreen bool
 	// KittyKeyboard indicates the Kitty keyboard protocol was successfully negotiated.
 	KittyKeyboard bool
+	// Hyperlinks indicates the terminal supports OSC 8 hyperlinks.
+	Hyperlinks bool
 }
 
 // Terminal abstracts terminal operations for rendering and input.

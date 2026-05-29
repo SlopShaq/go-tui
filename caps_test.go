@@ -391,3 +391,17 @@ func containsHelper(s, substr string) bool {
 	}
 	return false
 }
+
+func TestDetectCapabilities_HyperlinksDefaultOn(t *testing.T) {
+	t.Setenv("TERM", "xterm-256color")
+	if !DetectCapabilities().Hyperlinks {
+		t.Error("Hyperlinks should default on for a normal terminal")
+	}
+}
+
+func TestDetectCapabilities_HyperlinksOffForDumb(t *testing.T) {
+	t.Setenv("TERM", "dumb")
+	if DetectCapabilities().Hyperlinks {
+		t.Error("Hyperlinks should be off for TERM=dumb")
+	}
+}

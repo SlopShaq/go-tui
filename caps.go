@@ -10,10 +10,11 @@ import (
 // Returns conservative defaults when detection fails.
 func DetectCapabilities() Capabilities {
 	caps := Capabilities{
-		Colors:    Color16,  // Safe default for most terminals
-		Unicode:   true,     // Assume modern terminal
-		TrueColor: false,
-		AltScreen: true,
+		Colors:     Color16, // Safe default for most terminals
+		Unicode:    true,    // Assume modern terminal
+		TrueColor:  false,
+		AltScreen:  true,
+		Hyperlinks: true, // Most modern terminals support OSC 8; disabled for dumb below
 	}
 
 	// First, check for explicit true color indicators that override everything else.
@@ -71,6 +72,7 @@ func DetectCapabilities() Capabilities {
 		caps.Colors = ColorNone
 		caps.Unicode = false
 		caps.AltScreen = false
+		caps.Hyperlinks = false
 		return caps // Early return for truly dumb terminal
 	case strings.Contains(term, "256color"):
 		caps.Colors = Color256

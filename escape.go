@@ -355,3 +355,21 @@ func (e *escBuilder) WriteString(s string) {
 func (e *escBuilder) WriteBytes(b []byte) {
 	e.buf = append(e.buf, b...)
 }
+
+// OpenHyperlink writes an OSC 8 hyperlink-open sequence for the given URL.
+// Control bytes (< 0x20 and 0x7f) are stripped so they cannot terminate or
+// corrupt the sequence.
+func (e *escBuilder) OpenHyperlink(url string) {
+	e.buf = append(e.buf, 0x1b, ']', '8', ';', ';')
+	for i := 0; i < len(url); i++ {
+		if c := url[i]; c >= 0x20 && c != 0x7f {
+			e.buf = append(e.buf, c)
+		}
+	}
+	e.buf = append(e.buf, 0x1b, '\\')
+}
+
+// CloseHyperlink writes an OSC 8 hyperlink-close sequence (empty URL).
+func (e *escBuilder) CloseHyperlink() {
+	e.buf = append(e.buf, 0x1b, ']', '8', ';', ';', 0x1b, '\\')
+}

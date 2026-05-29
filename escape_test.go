@@ -256,3 +256,25 @@ func TestEscBuilder_SetStyle_Attributes(t *testing.T) {
 	}
 }
 
+
+func TestEscBuilder_Hyperlink(t *testing.T) {
+	e := newEscBuilder(64)
+	e.OpenHyperlink("https://example.com")
+	e.WriteString("link")
+	e.CloseHyperlink()
+	got := string(e.Bytes())
+	want := "\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEscBuilder_HyperlinkStripsControlBytes(t *testing.T) {
+	e := newEscBuilder(64)
+	e.OpenHyperlink("https://x\x1b\n\x07/y") // control bytes must be dropped
+	got := string(e.Bytes())
+	want := "\x1b]8;;https://x/y\x1b\\"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

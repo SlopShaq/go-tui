@@ -258,3 +258,45 @@ func TestWrapSpans_PreservesLinkAndSplitsOnLinkChange(t *testing.T) {
 		t.Errorf("seg 1 = %+v, want {cd, Y}", lines[0][1])
 	}
 }
+
+func TestWrapSpans_LinkSpacesStayLinkedAndStyled(t *testing.T) {
+	// A multi-word link must render as one continuous run: the spaces between its
+	// words carry the link target and the link's style (e.g. underline), so the
+	// hyperlink and its underline are not broken at the gaps.
+	link := NewStyle().Underline()
+	lines := wrapSpans([]TextSpan{
+		{Text: "go to site", Style: link, Link: "http://x"},
+	}, 40)
+	if len(lines) != 1 {
+		t.Fatalf("want one line, got %d", len(lines))
+	}
+	for i, seg := range lines[0] {
+		if seg.Link != "http://x" {
+			t.Errorf("segment %d %q lost the link: %+v", i, seg.Text, seg)
+		}
+		if seg.Style.Attrs&AttrUnderline == 0 {
+			t.Errorf("segment %d %q lost the underline: %+v", i, seg.Text, seg)
+		}
+	}
+}
+
+func TestWrapSpans_NonLinkSeparatorStaysNeutral(t *testing.T) {
+	// The deliberate neutral-separator behavior is preserved for non-link runs:
+	// the space after a bold word is not itself bold.
+	lines := wrapSpans([]TextSpan{
+		{Text: "bold words", Style: NewStyle().Bold()},
+	}, 40)
+	if len(lines) != 1 {
+		t.Fatalf("want one line, got %d", len(lines))
+	}
+	joined := ""
+	for _, seg := range lines[0] {
+		if seg.Text == " " && seg.Style.Attrs&AttrBold != 0 {
+			t.Errorf("separator space should not be bold: %+v", seg)
+		}
+		joined += seg.Text
+	}
+	if joined != "bold words" {
+		t.Errorf("joined = %q, want %q", joined, "bold words")
+	}
+}

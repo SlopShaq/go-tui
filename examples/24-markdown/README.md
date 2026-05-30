@@ -10,11 +10,13 @@ go run .
 
 ## What it shows
 
-- The `<markdown>` tag fed by a `source` expression, with an explicit `width` so
-  list and blockquote content wraps.
+- The `<markdown>` tag fed by a `source` expression with a responsive `width`:
+  `mdWidth(app)` derives the width from `app.Size()`, so the text fills a wide
+  terminal and wraps on a narrow one (re-evaluated on resize).
 - A `MarkdownTheme` default styling headings, emphasis, inline code, code blocks,
   tables, lists, and blockquotes.
-- The component wrapped in an `overflow-y-scroll` container, since `Markdown`
+- The component wrapped in a bordered `overflow-y-scroll` container that grows to
+  fill the height, with the title and help text outside the frame. `Markdown`
   owns no scroll state of its own.
 
 The sample document in `main.go` exercises every supported construct:

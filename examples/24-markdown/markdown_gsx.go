@@ -62,12 +62,18 @@ func (v *viewer) HandleMouse(me tui.MouseEvent) bool {
 	return false
 }
 
+func (v *viewer) mdWidth(app *tui.App) int {
+	w, _ := app.Size()
+	w -= 5
+	if w < 10 {
+		w = 10
+	}
+	return w
+}
+
 func (v *viewer) Render(app *tui.App) *tui.Element {
 	__tui_0 := tui.New(
 		tui.WithDisplay(tui.DisplayFlex), tui.WithDirection(tui.Column),
-		tui.WithBorder(tui.BorderRounded),
-		tui.WithBorderStyle(tui.NewStyle().Foreground(tui.Cyan)),
-		tui.WithPaddingTRBL(0, 1, 0, 1),
 	)
 	__tui_1 := tui.New(
 		tui.WithText("Markdown Viewer"),
@@ -80,13 +86,16 @@ func (v *viewer) Render(app *tui.App) *tui.Element {
 		tui.WithScrollbarStyle(tui.NewStyle().Foreground(tui.Cyan)),
 		tui.WithScrollbarThumbStyle(tui.NewStyle().Foreground(tui.BrightCyan)),
 		tui.WithFlexGrow(1),
+		tui.WithBorder(tui.BorderRounded),
+		tui.WithBorderStyle(tui.NewStyle().Foreground(tui.Cyan)),
+		tui.WithPaddingTRBL(0, 1, 0, 1),
 		tui.WithScrollOffset(0, v.scrollY.Get()),
 	)
 	v.content.Set(__tui_2)
 	__tui_3 := app.MountPersistent(v, 0, func() tui.Component {
 		return tui.NewMarkdown(
 			tui.WithMarkdownSource(v.doc),
-			tui.WithMarkdownWidth(72),
+			tui.WithMarkdownWidth(v.mdWidth(app)),
 		)
 	})
 	__tui_2.AddChild(__tui_3)

@@ -59,14 +59,26 @@ func (v *viewer) HandleMouse(me tui.MouseEvent) bool {
 	return false
 }
 
+// mdWidth makes the markdown responsive: it fills the width available inside the
+// bordered viewer, so wide terminals show unwrapped text and narrow ones wrap.
+// Chrome reserved: border (2) + horizontal padding (2) + scrollbar gutter (1).
+func (v *viewer) mdWidth(app *tui.App) int {
+	w, _ := app.Size()
+	w -= 5
+	if w < 10 {
+		w = 10
+	}
+	return w
+}
+
 templ (v *viewer) Render() {
-	<div class="flex-col px-1 border-rounded border-cyan">
+	<div class="flex-col">
 		<span class="text-gradient-cyan-magenta font-bold">Markdown Viewer</span>
 		<div
 			ref={v.content}
-			class="overflow-y-scroll scrollbar-cyan scrollbar-thumb-bright-cyan grow"
+			class="overflow-y-scroll scrollbar-cyan scrollbar-thumb-bright-cyan grow border-rounded border-cyan px-1"
 			scrollOffset={0, v.scrollY.Get()}>
-			<markdown source={v.doc} width={72} />
+			<markdown source={v.doc} width={v.mdWidth(app)} />
 		</div>
 		<span class="font-dim">j/k or arrows scroll | q/esc quit</span>
 	</div>

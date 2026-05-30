@@ -263,6 +263,18 @@ func TestMarkdown_TableRuleBetweenEveryRow(t *testing.T) {
 	}
 }
 
+func TestMarkdown_HeadingSpacingCountsInHeight(t *testing.T) {
+	// The blank line after a heading must be a real row counted in the rendered
+	// height (a bottom margin is not counted in a container's auto height, which
+	// left the last line of scrollable content unreachable). heading(1) +
+	// spacer(1) + body(1) = 3.
+	m := NewMarkdown(WithMarkdownSource("# H\n\nbody"), WithMarkdownWidth(20))
+	_, h := m.Render(nil).IntrinsicSize()
+	if h != 3 {
+		t.Errorf("expected total height 3 (heading + blank + body), got %d", h)
+	}
+}
+
 func TestMarkdown_TableFullGrid(t *testing.T) {
 	src := "| A | B |\n| - | - |\n| 1 | 2 |\n"
 	m := NewMarkdown(WithMarkdownSource(src), WithMarkdownWidth(20))

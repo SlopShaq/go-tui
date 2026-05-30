@@ -117,15 +117,17 @@ func wrapSpans(spans []TextSpan, maxWidth int) [][]TextSpan {
 			}
 		}
 	}
-	// emitSpace appends a single separator space. Deliberate choice: separators
-	// carry the default (zero) style so they inherit the element's base style at
-	// render time, rather than the adjacent word's style. This keeps inter-word
-	// gaps neutral (e.g. the space after a bold word is not itself bold).
-	emitSpace := func() {
-		if n := len(cur); n > 0 && cur[n-1].Style == (Style{}) {
+	// emitSpace appends a single separator space. Separators normally carry the
+	// default (zero) style so they inherit the element's base style at render time
+	// rather than the adjacent word's style (e.g. the space after a bold word is
+	// not itself bold). The exception is a separator interior to one link run: it
+	// carries that link's style and target so the hyperlink (and its underline)
+	// stays continuous across the gap. st/link give the link context, or zero.
+	emitSpace := func(st Style, link string) {
+		if n := len(cur); n > 0 && cur[n-1].Style == st && cur[n-1].Link == link {
 			cur[n-1].Text += " "
 		} else {
-			cur = append(cur, TextSpan{Text: " "})
+			cur = append(cur, TextSpan{Text: " ", Style: st, Link: link})
 		}
 	}
 
@@ -157,7 +159,17 @@ func wrapSpans(spans []TextSpan, maxWidth int) [][]TextSpan {
 			emit(word)
 			lineWidth = wordWidth
 		case lineWidth+1+wordWidth <= maxWidth:
-			emitSpace()
+			// If the separator sits between two words of the same link, give it
+			// that link's style+target so the link renders as one continuous run.
+			var sepSt Style
+			var sepLink string
+			if len(word) > 0 && word[0].link != "" {
+				if n := len(cur); n > 0 && cur[n-1].Link == word[0].link {
+					sepSt = word[0].st
+					sepLink = word[0].link
+				}
+			}
+			emitSpace(sepSt, sepLink)
 			emit(word)
 			lineWidth += 1 + wordWidth
 		default:

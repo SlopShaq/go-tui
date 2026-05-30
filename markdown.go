@@ -131,11 +131,17 @@ func (m *Markdown) renderHeading(b markdown.Block) *Element {
 	if level > 6 {
 		level = 6
 	}
-	return New(
+	// A heading plus a real one-row spacer below it, so the blank line after the
+	// heading is counted in the parent's height (a bottom margin is applied to
+	// positioning but not to a container's auto height, which breaks scroll
+	// extents). The spacer is a child element, so it counts everywhere.
+	col := New(WithDirection(Column))
+	col.AddChild(New(
 		WithTextStyle(m.theme.Heading[level-1]),
 		WithRichText(m.inlineToSpans(b.Inline)...),
-		WithMarginTRBL(0, 0, 1, 0), // a blank line after every heading
-	)
+	))
+	col.AddChild(New(WithHeight(1)))
+	return col
 }
 
 func (m *Markdown) renderParagraph(b markdown.Block, textStyle Style) *Element {

@@ -300,8 +300,17 @@ The compiler pipeline is: **Lexer → Parser → Analyzer → Generator**
 - `markdown_theme.go` -- MarkdownTheme struct and DefaultMarkdownTheme()
 - `internal/markdown/` -- zero-dependency parser: Parse() returns a recursive []Block tree (no tui import)
 - `richtext.go` -- TextSpan/WithRichText primitive that headings/paragraphs/table cells render through
+- `highlight.go` -- CodeHighlighter interface, TokenKind, Palette, DefaultPalette,
+  NewHighlighter (built-in), builtinHighlighter; maps internal/highlight tokens to colored TextSpans
+- `internal/highlight/` -- zero-dependency syntax tokenizer (no tui import): Tokenize returns
+  [][]Token per line; per-language lexers for Go, JSON, Bash, JS/TS; unknown languages fall back to plain
 - **gsx integration:** `internal/tuigen/generator_element.go` (isComponentElement, componentConstructor, markdownAttributeToOption), `internal/tuigen/analyzer.go` (knownTags, voidElements, knownAttributes: source/state/theme), `internal/lsp/schema/schema.go` (markdownAttrs)
 - **Note:** `<markdown>` is self-closing; content comes from `source`/`state` expression attributes (the generator cannot type-discriminate, so source and state are distinct attributes). The component owns no scroll/keys; wrap it in a scrollable container.
+- **Note:** Fenced code blocks are syntax-highlighted by default for Go, JSON, Bash, and
+  JS/TS via the theme's `CodeHighlighter`. Set `theme.CodeHighlighter = nil` to
+  disable, or `tui.NewHighlighter(customPalette)` to recolor. Unknown languages
+  render uncolored. Implement `CodeHighlighter` to plug in another engine (e.g. a
+  chroma adapter using chroma's lexer, mapped to per-line `[]TextSpan`).
 
 ### Writing tests
 

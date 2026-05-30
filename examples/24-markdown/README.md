@@ -18,6 +18,9 @@ go run .
 - The component wrapped in a bordered `overflow-y-scroll` container that grows to
   fill the height, with the title and help text outside the frame. `Markdown`
   owns no scroll state of its own.
+- Fenced code blocks are syntax-highlighted by default (the sample's Go block
+  colorizes keywords, strings, numbers, types, and comments). Highlighting is
+  the theme's built-in zero-dependency lexer; no setup required.
 
 The sample document in `main.go` exercises every supported construct:
 

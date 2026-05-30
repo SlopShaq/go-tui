@@ -1,5 +1,6 @@
 # Build binaries
 /tui
+/24-markdown
 dist/
 
 # Example binaries (compiled Go binaries match their directory name)
@@ -53,6 +54,10 @@ docs/superpowers/
 
 # Claude
 .claude/
+
+# Codex / agent local files
+.codex/
+AGENTS.md
 
 # Worktrees
 .worktrees/

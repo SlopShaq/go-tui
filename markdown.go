@@ -278,63 +278,127 @@ func (m *Markdown) renderBlockquote(b markdown.Block, contentWidth int) *Element
 	return row
 }
 
-// renderTable renders a pipe table into the existing <table>/<tr>/<th>/<td>
-// element tree. Row 0 is the header. An optional separator row is drawn when the
-// theme requests it.
+// tableGrid holds the box-drawing runes for a full table grid in a given style:
+// horizontal/vertical lines plus the nine junctions (top/middle/bottom row, each
+// left/mid/right).
+type tableGrid struct {
+	h, v       rune
+	tl, tm, tr rune
+	ml, mm, mr rune
+	bl, bm, br rune
+}
+
+func tableGridFor(b BorderStyle) tableGrid {
+	switch b {
+	case BorderDouble:
+		return tableGrid{'═', '║', '╔', '╦', '╗', '╠', '╬', '╣', '╚', '╩', '╝'}
+	case BorderThick:
+		return tableGrid{'━', '┃', '┏', '┳', '┓', '┣', '╋', '┫', '┗', '┻', '┛'}
+	case BorderSingle:
+		return tableGrid{'─', '│', '┌', '┬', '┐', '├', '┼', '┤', '└', '┴', '┘'}
+	default: // rounded (and the default theme)
+		return tableGrid{'─', '│', '╭', '┬', '╮', '├', '┼', '┤', '╰', '┴', '╯'}
+	}
+}
+
+// gridRule builds one horizontal rule spanning all columns (the top border, the
+// header separator, or the bottom border), padding each column by one space on
+// each side to match the content rows.
+func gridRule(widths []int, h, left, mid, right rune) string {
+	var sb strings.Builder
+	sb.WriteRune(left)
+	for i, w := range widths {
+		sb.WriteString(strings.Repeat(string(h), w+2))
+		if i == len(widths)-1 {
+			sb.WriteRune(right)
+		} else {
+			sb.WriteRune(mid)
+		}
+	}
+	return sb.String()
+}
+
+// renderTable renders a pipe table as a full grid: an outer box plus column
+// separators and a rule under the header, in the theme.TableBorder style. Each
+// cell keeps its inline (rich-text) styling. Column widths fit the widest cell.
 func (m *Markdown) renderTable(b markdown.Block) *Element {
-	tableOpts := []Option{WithTag("table"), WithDisplay(DisplayFlex), WithDirection(Column)}
-	if m.theme.TableBorder != BorderNone {
-		tableOpts = append(tableOpts, WithBorder(m.theme.TableBorder))
-	}
-	table := New(tableOpts...)
 	if len(b.Rows) == 0 {
-		return table
+		return New(WithDirection(Column))
 	}
 
-	// Header row.
-	header := b.Rows[0]
-	table.AddChild(m.renderTableRow(header, true))
+	cols := 0
+	for _, row := range b.Rows {
+		if len(row) > cols {
+			cols = len(row)
+		}
+	}
+	if cols == 0 {
+		return New(WithDirection(Column))
+	}
 
-	// Optional separator row sized to each header cell's text width.
-	if m.theme.TableSeparator {
-		sep := New(WithTag("tr"), WithDisplay(DisplayFlex), WithDirection(Row))
-		for _, cell := range header {
+	widths := make([]int, cols)
+	for _, row := range b.Rows {
+		for c := 0; c < cols && c < len(row); c++ {
 			w := 0
-			for _, in := range cell.Inline {
+			for _, in := range row[c].Inline {
 				w += stringWidth(in.Text)
 			}
-			if w < 1 {
-				w = 1
+			if w > widths[c] {
+				widths[c] = w
 			}
-			sep.AddChild(New(
-				WithTag("td"),
-				WithText(strings.Repeat(string(m.theme.TableSeparatorChar), w)),
-			))
 		}
-		table.AddChild(sep)
+	}
+	for c := range widths {
+		if widths[c] < 1 {
+			widths[c] = 1
+		}
 	}
 
-	// Body rows.
-	for _, row := range b.Rows[1:] {
-		table.AddChild(m.renderTableRow(row, false))
+	g := tableGridFor(m.theme.TableBorder)
+	gridStyle := NewStyle()
+	rule := func(left, mid, right rune) *Element {
+		return New(WithText(gridRule(widths, g.h, left, mid, right)), WithWrap(false), WithTextStyle(gridStyle))
 	}
+
+	table := New(WithDirection(Column))
+	table.AddChild(rule(g.tl, g.tm, g.tr))
+	for r, row := range b.Rows {
+		header := r == 0
+		table.AddChild(m.renderTableRow(row, widths, g, header))
+		if header {
+			table.AddChild(rule(g.ml, g.mm, g.mr))
+		}
+	}
+	table.AddChild(rule(g.bl, g.bm, g.br))
 	return table
 }
 
-func (m *Markdown) renderTableRow(cells []markdown.TableCell, header bool) *Element {
-	tr := New(WithTag("tr"), WithDisplay(DisplayFlex), WithDirection(Row))
-	tag := "td"
-	if header {
-		tag = "th"
+// renderTableRow builds one content row: vertical separators around each
+// fixed-width cell, with one space of padding on each side of the content.
+func (m *Markdown) renderTableRow(cells []markdown.TableCell, widths []int, g tableGrid, header bool) *Element {
+	gridStyle := NewStyle()
+	bar := func(text string) *Element {
+		return New(WithText(text), WithWrap(false), WithTextStyle(gridStyle))
 	}
-	for _, cell := range cells {
-		opts := []Option{WithTag(tag), WithRichText(m.inlineToSpans(cell.Inline)...)}
-		if header {
-			opts = append(opts, WithTextStyle(m.theme.TableHeader))
+
+	row := New(WithDisplay(DisplayFlex), WithDirection(Row), WithHeight(1))
+	row.AddChild(bar(string(g.v) + " "))
+	for c := range widths {
+		var spans []TextSpan
+		if c < len(cells) {
+			spans = m.inlineToSpans(cells[c].Inline)
 		}
-		tr.AddChild(New(opts...))
+		cellOpts := []Option{WithWidth(widths[c]), WithWrap(false), WithRichText(spans...)}
+		if header {
+			cellOpts = append(cellOpts, WithTextStyle(m.theme.TableHeader))
+		}
+		row.AddChild(New(cellOpts...))
+		if c < len(widths)-1 {
+			row.AddChild(bar(" " + string(g.v) + " "))
+		}
 	}
-	return tr
+	row.AddChild(bar(" " + string(g.v)))
+	return row
 }
 
 // inlineToSpans converts parser inline runs into themed TextSpans. The element's

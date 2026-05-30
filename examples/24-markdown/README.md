@@ -24,7 +24,8 @@ The sample document in `main.go` exercises every supported construct:
   terminals), with both `*`/`_` and `**`/`__` markers
 - Edge cases: a delimiter with no closer stays literal (`see **docs`, `3 * 4`)
 - Fenced code blocks, including a preserved blank line
-- Pipe tables with inline formatting in cells
+- Pipe tables rendered as a full grid (outer box, column separators, header
+  rule) with inline formatting preserved in cells
 - Unordered lists (`-`, `*`, `+`), ordered lists, and nesting
 - Blockquotes, including a nested quote and a quote containing a list
 

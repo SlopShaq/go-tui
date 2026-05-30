@@ -229,14 +229,22 @@ func TestMarkdown_FullDocument(t *testing.T) {
 	}
 }
 
-func TestMarkdown_TableHasBorderOutline(t *testing.T) {
+func TestMarkdown_TableFullGrid(t *testing.T) {
 	src := "| A | B |\n| - | - |\n| 1 | 2 |\n"
 	m := NewMarkdown(WithMarkdownSource(src), WithMarkdownWidth(20))
 	buf := NewBuffer(20, 6)
 	m.Render(nil).Render(buf, 20, 6)
-	// DefaultMarkdownTheme outlines tables with a rounded border.
+	out := buf.StringTrimmed()
+
+	// DefaultMarkdownTheme draws a full rounded grid: outer corners, a top
+	// column junction, a header-rule cross, and column separators.
 	if buf.Cell(0, 0).Rune != '╭' {
-		t.Errorf("table should have a border corner at (0,0), got %q", buf.Cell(0, 0).Rune)
+		t.Errorf("top-left corner should be ╭, got %q", buf.Cell(0, 0).Rune)
+	}
+	for _, want := range []rune{'┬', '┼', '┴', '│'} {
+		if !strings.ContainsRune(out, want) {
+			t.Errorf("grid should contain %q:\n%s", want, out)
+		}
 	}
 }
 

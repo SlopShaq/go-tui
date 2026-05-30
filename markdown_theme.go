@@ -18,13 +18,11 @@ type MarkdownTheme struct {
 	CodeBlockBg     Color       // default => no fill
 	CodeBlockBorder BorderStyle // a real full-box border around the code element
 
-	// Tables reuse the existing table layout (a 1-char column gap, not grid lines).
-	// TableBorder draws an outline around the whole table (BorderNone = no outline).
-	// v1 styles the header and, optionally, a separator row under it.
-	TableHeader        Style
-	TableBorder        BorderStyle
-	TableSeparator     bool
-	TableSeparatorChar rune
+	// Tables render as a full grid (outer box, column separators, and a rule under
+	// the header) in the TableBorder style. BorderNone falls back to a plain grid
+	// using rounded characters. TableHeader styles the header cells.
+	TableHeader Style
+	TableBorder BorderStyle
 
 	// Blockquotes render a 1-wide glyph column (borders draw full boxes, so a
 	// BorderStyle cannot be used for a left bar).
@@ -57,10 +55,8 @@ func DefaultMarkdownTheme() MarkdownTheme {
 		CodeBlockBg:     DefaultColor(),
 		CodeBlockBorder: BorderRounded,
 
-		TableHeader:        NewStyle().Bold(),
-		TableBorder:        BorderRounded,
-		TableSeparator:     false,
-		TableSeparatorChar: '-',
+		TableHeader: NewStyle().Bold(),
+		TableBorder: BorderRounded,
 
 		BlockquoteBar:      '│',
 		BlockquoteBarStyle: NewStyle().Foreground(BrightBlack),

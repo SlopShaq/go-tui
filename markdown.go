@@ -134,6 +134,7 @@ func (m *Markdown) renderHeading(b markdown.Block) *Element {
 	return New(
 		WithTextStyle(m.theme.Heading[level-1]),
 		WithRichText(m.inlineToSpans(b.Inline)...),
+		WithMarginTRBL(0, 0, 1, 0), // a blank line after every heading
 	)
 }
 
@@ -363,9 +364,9 @@ func (m *Markdown) renderTable(b markdown.Block) *Element {
 	table := New(WithDirection(Column))
 	table.AddChild(rule(g.tl, g.tm, g.tr))
 	for r, row := range b.Rows {
-		header := r == 0
-		table.AddChild(m.renderTableRow(row, widths, g, header))
-		if header {
+		table.AddChild(m.renderTableRow(row, widths, g, r == 0))
+		// A rule between every row (after the header and between body rows).
+		if r < len(b.Rows)-1 {
 			table.AddChild(rule(g.ml, g.mm, g.mr))
 		}
 	}

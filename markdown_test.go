@@ -229,6 +229,40 @@ func TestMarkdown_FullDocument(t *testing.T) {
 	}
 }
 
+func TestMarkdown_HeadingHasTrailingSpace(t *testing.T) {
+	m := NewMarkdown(WithMarkdownSource("# Title\nbody text\n"), WithMarkdownWidth(20))
+	buf := NewBuffer(20, 5)
+	m.Render(nil).Render(buf, 20, 5)
+	// Heading on row 0, a blank line on row 1, body on row 2.
+	if buf.Cell(0, 0).Rune != 'T' {
+		t.Fatalf("heading should be on row 0, got %q", buf.Cell(0, 0).Rune)
+	}
+	if r := buf.Cell(0, 1).Rune; r != 0 && r != ' ' {
+		t.Errorf("expected a blank line after the heading, got %q at (0,1)", r)
+	}
+	if buf.Cell(0, 2).Rune != 'b' {
+		t.Errorf("body should be on row 2 after heading + blank line, got %q", buf.Cell(0, 2).Rune)
+	}
+}
+
+func TestMarkdown_TableRuleBetweenEveryRow(t *testing.T) {
+	src := "| A | B |\n| - | - |\n| 1 | 2 |\n| 3 | 4 |\n"
+	m := NewMarkdown(WithMarkdownSource(src), WithMarkdownWidth(20))
+	buf := NewBuffer(20, 10)
+	m.Render(nil).Render(buf, 20, 10)
+	// header + 2 body rows => 2 interior rules (after header, between body rows),
+	// each starting with the left-tee junction.
+	tees := 0
+	for y := 0; y < 10; y++ {
+		if buf.Cell(0, y).Rune == '├' {
+			tees++
+		}
+	}
+	if tees != 2 {
+		t.Errorf("expected 2 interior row rules, got %d", tees)
+	}
+}
+
 func TestMarkdown_TableFullGrid(t *testing.T) {
 	src := "| A | B |\n| - | - |\n| 1 | 2 |\n"
 	m := NewMarkdown(WithMarkdownSource(src), WithMarkdownWidth(20))

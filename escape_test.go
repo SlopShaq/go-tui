@@ -174,6 +174,34 @@ func TestEscBuilder_AltScreen(t *testing.T) {
 	}
 }
 
+func TestEscBuilder_AltScroll(t *testing.T) {
+	type tc struct {
+		fn       func(*escBuilder)
+		expected string
+	}
+
+	tests := map[string]tc{
+		"enable alt scroll": {
+			fn:       func(e *escBuilder) { e.EnableAltScroll() },
+			expected: "\x1b[?1007h",
+		},
+		"disable alt scroll": {
+			fn:       func(e *escBuilder) { e.DisableAltScroll() },
+			expected: "\x1b[?1007l",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			e := newEscBuilder(64)
+			tt.fn(e)
+			if string(e.Bytes()) != tt.expected {
+				t.Errorf("got %q, want %q", e.Bytes(), tt.expected)
+			}
+		})
+	}
+}
+
 func TestEscBuilder_ResetStyle(t *testing.T) {
 	e := newEscBuilder(64)
 	e.ResetStyle()
@@ -256,3 +284,24 @@ func TestEscBuilder_SetStyle_Attributes(t *testing.T) {
 	}
 }
 
+func TestEscBuilder_Hyperlink(t *testing.T) {
+	e := newEscBuilder(64)
+	e.OpenHyperlink("https://example.com")
+	e.WriteString("link")
+	e.CloseHyperlink()
+	got := string(e.Bytes())
+	want := "\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEscBuilder_HyperlinkStripsControlBytes(t *testing.T) {
+	e := newEscBuilder(64)
+	e.OpenHyperlink("https://x\x1b\n\x07/y") // control bytes must be dropped
+	got := string(e.Bytes())
+	want := "\x1b]8;;https://x/y\x1b\\"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}

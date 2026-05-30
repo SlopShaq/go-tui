@@ -4,6 +4,132 @@ import (
 	"testing"
 )
 
+func TestRichText_BoldSurvivesWrap(t *testing.T) {
+	buf := NewBuffer(40, 6)
+	// Paragraph fixed to width 10 so the bold run wraps.
+	para := New(
+		WithWidth(10),
+		WithRichText(
+			TextSpan{Text: "see "},
+			TextSpan{Text: "this bold run", Style: NewStyle().Bold()},
+			TextSpan{Text: " end"},
+		),
+	)
+	para.Calculate(40, 6)
+	RenderTree(buf, para)
+
+	// Row 0 starts "see " (plain) then "this" (bold).
+	if buf.Cell(0, 0).Rune != 's' || buf.Cell(0, 0).Style.Attrs&AttrBold != 0 {
+		t.Errorf("cell(0,0) should be plain 's', got %q attrs=%v", buf.Cell(0, 0).Rune, buf.Cell(0, 0).Style.Attrs)
+	}
+	// "see " is 4 cells; the bold word "this" begins at x=4 on row 0.
+	if buf.Cell(4, 0).Style.Attrs&AttrBold == 0 {
+		t.Errorf("cell(4,0) should be bold (start of bold run)")
+	}
+	// The paragraph must occupy more than one row at width 10.
+	rowsWithText := 0
+	for y := 0; y < 6; y++ {
+		for x := 0; x < 10; x++ {
+			if buf.Cell(x, y).Rune != ' ' {
+				rowsWithText++
+				break
+			}
+		}
+	}
+	if rowsWithText < 2 {
+		t.Errorf("expected the paragraph to wrap to >=2 rows, got %d", rowsWithText)
+	}
+}
+
+func TestRichText_ClippedLinesBelowAnOverflowingLineStillRender(t *testing.T) {
+	// Regression: drawSpanLines must clip an over-wide line and continue to the
+	// next line, not abandon all remaining lines. Parent is overflow-hidden and
+	// narrower (width 3) than the child (width 10), so each wrapped line is wider
+	// than the clip. Line 0 must clip at 3 cols AND line 1 must still render.
+	buf := NewBuffer(12, 6)
+	child := New(
+		WithWidth(10),
+		WithFlexShrink(0), // keep the child wider than the clip
+		WithRichText(TextSpan{Text: "aaaaa bbbbb"}), // wraps to "aaaaa" / "bbbbb" at width 10
+	)
+	parent := New(
+		WithSize(3, 4),
+		WithOverflow(OverflowHidden),
+	)
+	parent.AddChild(child)
+	parent.Calculate(12, 6)
+	RenderTree(buf, parent)
+
+	// Line 0 is clipped to 3 columns.
+	if buf.Cell(0, 0).Rune != 'a' || buf.Cell(2, 0).Rune != 'a' {
+		t.Errorf("line 0 not rendered/clipped as expected: %q%q",
+			buf.Cell(0, 0).Rune, buf.Cell(2, 0).Rune)
+	}
+	if buf.Cell(3, 0).Rune == 'a' {
+		t.Errorf("line 0 leaked past the clip at x=3")
+	}
+	// The regression assertion: line 1 must still render after line 0 overflowed.
+	if buf.Cell(0, 1).Rune != 'b' {
+		t.Errorf("line 1 was dropped after line 0 hit the clip edge: cell(0,1)=%q, want 'b'", buf.Cell(0, 1).Rune)
+	}
+}
+
+func TestRichText_RendersInsideScrollableContainer(t *testing.T) {
+	buf := NewBuffer(20, 5)
+	child := New(
+		WithSize(10, 1),
+		WithRichText(
+			TextSpan{Text: "ab"},
+			TextSpan{Text: "cd", Style: NewStyle().Bold()},
+		),
+	)
+	container := New(
+		WithSize(12, 3),
+		WithScrollable(ScrollVertical),
+	)
+	container.AddChild(child)
+	container.Calculate(20, 5)
+	RenderTree(buf, container)
+
+	// Text must appear (this is the bug the spec warns about).
+	if got := buf.Cell(0, 0).Rune; got != 'a' {
+		t.Errorf("rich text not rendered in scroll container: cell(0,0)=%q, want 'a'", got)
+	}
+	if buf.Cell(2, 0).Style.Attrs&AttrBold == 0 {
+		t.Errorf("cell(2,0) should be bold inside scroll container")
+	}
+}
+
+func TestRenderTree_RichTextStylesPerSegment(t *testing.T) {
+	buf := NewBuffer(20, 3)
+	e := New(
+		WithSize(10, 1),
+		WithRichText(
+			TextSpan{Text: "ab"},
+			TextSpan{Text: "cd", Style: NewStyle().Bold()},
+		),
+	)
+	e.Calculate(20, 3)
+	RenderTree(buf, e)
+
+	// "abcd" laid out left to right.
+	for x, want := range []rune{'a', 'b', 'c', 'd'} {
+		if got := buf.Cell(x, 0).Rune; got != want {
+			t.Errorf("cell(%d,0).Rune = %q, want %q", x, got, want)
+		}
+	}
+	// First two cells plain, last two bold.
+	if buf.Cell(0, 0).Style.Attrs&AttrBold != 0 {
+		t.Errorf("cell(0,0) should not be bold")
+	}
+	if buf.Cell(2, 0).Style.Attrs&AttrBold == 0 {
+		t.Errorf("cell(2,0) should be bold")
+	}
+	if buf.Cell(3, 0).Style.Attrs&AttrBold == 0 {
+		t.Errorf("cell(3,0) should be bold")
+	}
+}
+
 func TestRenderTree_DrawsBackground(t *testing.T) {
 	buf := NewBuffer(20, 10)
 	bgStyle := NewStyle().Background(Blue)
@@ -865,3 +991,19 @@ func TestRenderTree_TextWrapAutoScroll(t *testing.T) {
 	}
 }
 
+
+func TestRichText_LinkReachesCell(t *testing.T) {
+	buf := NewBuffer(10, 1)
+	e := New(
+		WithSize(6, 1),
+		WithRichText(TextSpan{Text: "ab", Link: "https://example.com"}),
+	)
+	e.Calculate(10, 1)
+	RenderTree(buf, e)
+	if got := buf.Cell(0, 0).Link; got != "https://example.com" {
+		t.Errorf("cell(0,0).Link = %q, want the URL", got)
+	}
+	if got := buf.Cell(1, 0).Link; got != "https://example.com" {
+		t.Errorf("cell(1,0).Link = %q, want the URL", got)
+	}
+}

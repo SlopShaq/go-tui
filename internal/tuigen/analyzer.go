@@ -97,6 +97,7 @@ var knownTags = map[string]bool{
 	"hr":       true,
 	"br":       true,
 	"modal":    true,
+	"markdown": true,
 }
 
 // voidElements lists elements that cannot have children.
@@ -105,6 +106,7 @@ var voidElements = map[string]bool{
 	"br":       true,
 	"input":    true,
 	"textarea": true,
+	"markdown": true,
 }
 
 // knownAttributes lists all supported element attributes.
@@ -196,6 +198,11 @@ var knownAttributes = map[string]bool{
 	"onSubmit":         true,
 	"value":            true,
 	"onChange":          true,
+
+	// Markdown
+	"source": true,
+	"state":  true,
+	"theme":  true,
 }
 
 // stateNewStateRegex matches tui.NewState(...) declarations.

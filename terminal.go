@@ -26,6 +26,8 @@ type Capabilities struct {
 	AltScreen bool
 	// KittyKeyboard indicates the Kitty keyboard protocol was successfully negotiated.
 	KittyKeyboard bool
+	// Hyperlinks indicates the terminal supports OSC 8 hyperlinks.
+	Hyperlinks bool
 }
 
 // Terminal abstracts terminal operations for rendering and input.
@@ -76,6 +78,14 @@ type Terminal interface {
 	// DisableMouse disables mouse event reporting.
 	// Call this before exiting to restore normal terminal behavior.
 	DisableMouse()
+
+	// EnableAltScroll enables alternate-scroll mode so the mouse wheel scrolls
+	// via cursor keys while on the alternate screen with mouse reporting off.
+	// This keeps native text selection and link clicking working.
+	EnableAltScroll()
+
+	// DisableAltScroll disables alternate-scroll mode.
+	DisableAltScroll()
 
 	// NegotiateKittyKeyboard attempts to enable the Kitty keyboard protocol
 	// using push/pop stack semantics. Each implementation uses its own stored

@@ -293,6 +293,25 @@ The compiler pipeline is: **Lexer → Parser → Analyzer → Generator**
   the overlay and logs via `debug.Log` when `inlineHeight > 0` and the app is not in
   alternate screen mode. Use `EnterAlternateScreen()` first.
 
+### Changing markdown rendering
+
+- `markdown.go` -- Markdown component: struct, NewMarkdown, BindApp, UpdateProps, Render, block-walk methods (renderHeading/renderParagraph/renderCodeFence/renderList/renderBlockquote/renderTable), inlineToSpans, single-entry parse cache
+- `markdown_options.go` -- MarkdownOption funcs: WithMarkdownSource, WithMarkdownState, WithMarkdownWidth, WithMarkdownTheme
+- `markdown_theme.go` -- MarkdownTheme struct and DefaultMarkdownTheme()
+- `internal/markdown/` -- zero-dependency parser: Parse() returns a recursive []Block tree (no tui import)
+- `richtext.go` -- TextSpan/WithRichText primitive that headings/paragraphs/table cells render through
+- `highlight.go` -- CodeHighlighter interface, TokenKind, Palette, DefaultPalette,
+  NewHighlighter (built-in), builtinHighlighter; maps internal/highlight tokens to colored TextSpans
+- `internal/highlight/` -- zero-dependency syntax tokenizer (no tui import): Tokenize returns
+  [][]Token per line; per-language lexers for Go, JSON, Bash, JS/TS; unknown languages fall back to plain
+- **gsx integration:** `internal/tuigen/generator_element.go` (isComponentElement, componentConstructor, markdownAttributeToOption), `internal/tuigen/analyzer.go` (knownTags, voidElements, knownAttributes: source/state/theme), `internal/lsp/schema/schema.go` (markdownAttrs)
+- **Note:** `<markdown>` is self-closing; content comes from `source`/`state` expression attributes (the generator cannot type-discriminate, so source and state are distinct attributes). The component owns no scroll/keys; wrap it in a scrollable container.
+- **Note:** Fenced code blocks are syntax-highlighted by default for Go, JSON, Bash, and
+  JS/TS via the theme's `CodeHighlighter`. Set `theme.CodeHighlighter = nil` to
+  disable, or `tui.NewHighlighter(customPalette)` to recolor. Unknown languages
+  render uncolored. Implement `CodeHighlighter` to plug in another engine (e.g. a
+  chroma adapter using chroma's lexer, mapped to per-line `[]TextSpan`).
+
 ### Writing tests
 
 - `mock_terminal.go` — MockTerminal: captures operations, maintains internal cell buffer
@@ -389,6 +408,7 @@ func helper(s string) string {
 | `<hr>` | Horizontal rule (self-closing) |
 | `<br>` | Line break (self-closing) |
 | `<modal>` | Modal overlay dialog |
+| `<markdown>` | Renders a markdown string into the widget tree (self-closing) |
 
 ### Common Attributes
 
@@ -489,6 +509,22 @@ func helper(s string) string {
 | `cursor` | `rune` | Cursor character (default '▌') |
 | `submitKey` | `tui.Key` | Submit trigger key (default KeyEnter) |
 | `onSubmit` | `func(string)` | Called when submit key is pressed |
+
+### Markdown-specific Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `source` | `string` | Static markdown content (string expression) |
+| `state` | `*State[string]` | Reactive markdown source; re-renders on change |
+| `width` | `int` | Fixed render width in characters (0 = fill available width) |
+| `theme` | `tui.MarkdownTheme` | Override the default styling |
+
+The `<markdown>` tag is self-closing; provide content through `source` or `state`
+(literal markdown as children is not supported). `Markdown` is a pure content
+renderer, so wrap it in a `scrollable` container to scroll long documents. It
+renders headings, bold/italic, inline code, fenced code blocks, pipe tables,
+ordered/unordered lists (with nesting), blockquotes, and links (OSC 8 hyperlinks
+on capable terminals).
 
 ### Tailwind-style Classes
 

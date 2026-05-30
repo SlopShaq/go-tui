@@ -20,6 +20,7 @@ type EmulatorTerminal struct {
 	inRawMode     bool
 	inAltScreen   bool
 	mouseEnabled  bool
+	altScroll     bool
 	caps          Capabilities
 
 	// Scroll region (0-indexed, inclusive). Defaults to full screen.
@@ -54,21 +55,23 @@ func NewEmulatorTerminal(width, height int) *EmulatorTerminal {
 	}
 }
 
-func (e *EmulatorTerminal) Size() (int, int)    { return e.width, e.height }
-func (e *EmulatorTerminal) Caps() Capabilities  { return e.caps }
-func (e *EmulatorTerminal) EnterRawMode() error  { e.inRawMode = true; return nil }
-func (e *EmulatorTerminal) ExitRawMode() error   { e.inRawMode = false; return nil }
-func (e *EmulatorTerminal) EnterAltScreen()      { e.inAltScreen = true }
-func (e *EmulatorTerminal) ExitAltScreen()       { e.inAltScreen = false }
-func (e *EmulatorTerminal) EnableMouse()         { e.mouseEnabled = true }
-func (e *EmulatorTerminal) DisableMouse()        { e.mouseEnabled = false }
+func (e *EmulatorTerminal) Size() (int, int)             { return e.width, e.height }
+func (e *EmulatorTerminal) Caps() Capabilities           { return e.caps }
+func (e *EmulatorTerminal) EnterRawMode() error          { e.inRawMode = true; return nil }
+func (e *EmulatorTerminal) ExitRawMode() error           { e.inRawMode = false; return nil }
+func (e *EmulatorTerminal) EnterAltScreen()              { e.inAltScreen = true }
+func (e *EmulatorTerminal) ExitAltScreen()               { e.inAltScreen = false }
+func (e *EmulatorTerminal) EnableMouse()                 { e.mouseEnabled = true }
+func (e *EmulatorTerminal) DisableMouse()                { e.mouseEnabled = false }
+func (e *EmulatorTerminal) EnableAltScroll()             { e.altScroll = true }
+func (e *EmulatorTerminal) DisableAltScroll()            { e.altScroll = false }
 func (e *EmulatorTerminal) NegotiateKittyKeyboard() bool { return false }
-func (e *EmulatorTerminal) EnableKittyKeyboard()          {}
-func (e *EmulatorTerminal) DisableKittyKeyboard()         {}
-func (e *EmulatorTerminal) ResetStyle()                   {}
-func (e *EmulatorTerminal) HideCursor()          { e.cursorHidden = true }
-func (e *EmulatorTerminal) ShowCursor()          { e.cursorHidden = false }
-func (e *EmulatorTerminal) SetCursor(x, y int)   { e.cursorCol = x; e.cursorRow = y }
+func (e *EmulatorTerminal) EnableKittyKeyboard()         {}
+func (e *EmulatorTerminal) DisableKittyKeyboard()        {}
+func (e *EmulatorTerminal) ResetStyle()                  {}
+func (e *EmulatorTerminal) HideCursor()                  { e.cursorHidden = true }
+func (e *EmulatorTerminal) ShowCursor()                  { e.cursorHidden = false }
+func (e *EmulatorTerminal) SetCursor(x, y int)           { e.cursorCol = x; e.cursorRow = y }
 
 func (e *EmulatorTerminal) Clear() {
 	for r := 0; r < e.height; r++ {
@@ -94,7 +97,18 @@ func (e *EmulatorTerminal) ClearToEnd() {
 
 func (e *EmulatorTerminal) Flush(changes []CellChange) {
 	for _, ch := range changes {
-		if ch.X >= 0 && ch.X < e.width && ch.Y >= 0 && ch.Y < e.height {
+		if ch.Y < 0 || ch.Y >= e.height {
+			continue
+		}
+		if ch.EraseToEOL {
+			for x := ch.X; x < e.width; x++ {
+				if x >= 0 {
+					e.screen[ch.Y][x] = ' '
+				}
+			}
+			continue
+		}
+		if ch.X >= 0 && ch.X < e.width {
 			r := ch.Cell.Rune
 			if r == 0 {
 				r = ' '

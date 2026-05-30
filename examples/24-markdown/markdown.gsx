@@ -60,12 +60,11 @@ func (v *viewer) HandleMouse(me tui.MouseEvent) bool {
 }
 
 templ (v *viewer) Render() {
-	<div class="flex-col p-1 border-rounded border-cyan">
+	<div class="flex-col px-1 border-rounded border-cyan">
 		<span class="text-gradient-cyan-magenta font-bold">Markdown Viewer</span>
 		<div
 			ref={v.content}
-			class="overflow-y-scroll scrollbar-cyan scrollbar-thumb-bright-cyan"
-			height={20}
+			class="overflow-y-scroll scrollbar-cyan scrollbar-thumb-bright-cyan grow"
 			scrollOffset={0, v.scrollY.Get()}>
 			<markdown source={v.doc} width={72} />
 		</div>

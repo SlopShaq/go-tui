@@ -65,9 +65,9 @@ func (v *viewer) HandleMouse(me tui.MouseEvent) bool {
 func (v *viewer) Render(app *tui.App) *tui.Element {
 	__tui_0 := tui.New(
 		tui.WithDisplay(tui.DisplayFlex), tui.WithDirection(tui.Column),
-		tui.WithPadding(1),
 		tui.WithBorder(tui.BorderRounded),
 		tui.WithBorderStyle(tui.NewStyle().Foreground(tui.Cyan)),
+		tui.WithPaddingTRBL(0, 1, 0, 1),
 	)
 	__tui_1 := tui.New(
 		tui.WithText("Markdown Viewer"),
@@ -79,7 +79,7 @@ func (v *viewer) Render(app *tui.App) *tui.Element {
 		tui.WithScrollable(tui.ScrollVertical),
 		tui.WithScrollbarStyle(tui.NewStyle().Foreground(tui.Cyan)),
 		tui.WithScrollbarThumbStyle(tui.NewStyle().Foreground(tui.BrightCyan)),
-		tui.WithHeight(20),
+		tui.WithFlexGrow(1),
 		tui.WithScrollOffset(0, v.scrollY.Get()),
 	)
 	v.content.Set(__tui_2)

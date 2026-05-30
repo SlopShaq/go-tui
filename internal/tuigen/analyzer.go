@@ -152,8 +152,8 @@ var knownAttributes = map[string]bool{
 	// Focus
 	"onFocus":   true,
 	"onBlur":    true,
-	"focusable":  true,
-	"autoFocus":  true,
+	"focusable": true,
+	"autoFocus": true,
 
 	// Scroll
 	"scrollable":          true,
@@ -197,22 +197,22 @@ var knownAttributes = map[string]bool{
 	"submitKey":        true,
 	"onSubmit":         true,
 	"value":            true,
-	"onChange":          true,
+	"onChange":         true,
 
 	// Markdown
-	"source": true,
-	"state":  true,
-	"theme":  true,
+	"source":           true,
+	"state":            true,
+	"theme":            true,
 }
 
 // stateNewStateRegex matches tui.NewState(...) declarations.
 // It captures the variable name and the initializer expression.
-var stateNewStateRegex = regexp.MustCompile(`(\w+)\s*:=\s*tui\.NewState\((.+)\)`)
+var stateNewStateRegex = regexp.MustCompile(`(\w+)\s*:=\s*[a-zA-Z0-9_]*\.?NewState\((.+)\)`)
 
 // eventsNewEventsRegex matches tui.NewEvents("topic") and
 // tui.NewEvents[T]("topic") declarations.
 // It captures the variable name.
-var eventsNewEventsRegex = regexp.MustCompile(`(\w+)\s*:=\s*tui\.NewEvents(?:\[.+\])?\([^)]*\)`)
+var eventsNewEventsRegex = regexp.MustCompile(`(\w+)\s*:=\s*[a-zA-Z0-9_]*\.?NewEvents(?:\[.+\])?\([^)]*\)`)
 
 // stateGetRegex matches state.Get() calls to detect state usage in expressions.
 // This pattern handles:
@@ -223,22 +223,22 @@ var stateGetRegex = regexp.MustCompile(`(?:\(\*(\w+)\)|(\w+))\.Get\(\)`)
 // stateParamRegex matches *tui.State[T] parameter types.
 // Uses greedy .+ but anchored to end of string with $, which works because
 // parameter type strings don't have trailing content after the closing bracket.
-var stateParamRegex = regexp.MustCompile(`\*tui\.State\[(.+)\]$`)
+var stateParamRegex = regexp.MustCompile(`\*?[a-zA-Z0-9_]*\.?State\[(.+)\]$`)
 
 // attributeSimilar maps common typos to correct attribute names.
 var attributeSimilar = map[string]string{
-	"colour":      "color",
-	"color":       "background",
-	"onfocus":     "onFocus",
-	"onblur":      "onBlur",
-	"flexgrow":    "flexGrow",
-	"flexshrink":  "flexShrink",
-	"textstyle":   "textStyle",
-	"textalign":   "textAlign",
-	"alignself":     "alignSelf",
-	"flexwrap":      "flexWrap",
-	"aligncontent":  "alignContent",
-	"borderstyle":   "borderStyle",
+	"colour":       "color",
+	"color":        "background",
+	"onfocus":      "onFocus",
+	"onblur":       "onBlur",
+	"flexgrow":     "flexGrow",
+	"flexshrink":   "flexShrink",
+	"textstyle":    "textStyle",
+	"textalign":    "textAlign",
+	"alignself":    "alignSelf",
+	"flexwrap":     "flexWrap",
+	"aligncontent": "alignContent",
+	"borderstyle":  "borderStyle",
 }
 
 // Analyze performs semantic analysis on a parsed file.

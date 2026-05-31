@@ -164,7 +164,13 @@ func (t *TextArea) Render(app *App) *Element {
 		root.AddChild(New(WithText(t.placeholder), WithTextStyle(t.placeholderStyle)))
 	} else {
 		for i := range lines {
-			root.AddChild(New(WithText(t.lineWithCursor(i)), WithTextStyle(t.textStyle), WithWrap(false)))
+			// When hideVirtualCursor is set and wrapWidth is configured, disable
+// element-level re-wrapping since wrapText() already handles it.
+if t.hideVirtualCursor {
+		root.AddChild(New(WithText(t.lineWithCursor(i)), WithTextStyle(t.textStyle), WithWrap(false)))
+		} else {
+		root.AddChild(New(WithText(t.lineWithCursor(i)), WithTextStyle(t.textStyle)))
+		}
 		}
 	}
 

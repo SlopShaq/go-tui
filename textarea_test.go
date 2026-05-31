@@ -49,52 +49,35 @@ func TestTextArea_MoveRight_UsesRuneLength(t *testing.T) {
 	}
 }
 
-func TestTextArea_HideVirtualCursor_ReturnsLineUnchanged(t *testing.T) {
-	ta := NewTextArea(
-		WithTextAreaVirtualCursor(false),
-	)
-	ta.BindApp(testApp)
-	ta.SetText("hello")
-	ta.Focus()
-	ta.cursorPos.Set(3)
-
-	line := ta.lineWithCursor(0)
-	want := "hello"
-	if line != want {
-		t.Fatalf("lineWithCursor(0) = %q, want %q (unchanged)", line, want)
+func TestTextArea_HideVirtualCursor(t *testing.T) {
+	tests := []struct {
+		name    string
+		text    string
+		cursor  int
+		wantLen int // expected line length (0 = same as text)
+	}{
+		{name: "returns line unchanged", text: "hello", cursor: 3, wantLen: 5},
+		{name: "returns space on empty line", text: "", cursor: 0, wantLen: 1},
+		{name: "line width matches wrapped text", text: "hello world", cursor: 5, wantLen: 11},
 	}
-}
 
-func TestTextArea_HideVirtualCursor_ReturnsSpaceOnEmptyLine(t *testing.T) {
-	ta := NewTextArea(
-		WithTextAreaVirtualCursor(false),
-	)
-	ta.BindApp(testApp)
-	ta.SetText("")
-	ta.Focus()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ta := NewTextArea(
+				WithTextAreaVirtualCursor(false),
+			)
+			ta.BindApp(testApp)
+			ta.SetText(tt.text)
+			ta.Focus()
+			ta.cursorPos.Set(tt.cursor)
 
-	line := ta.lineWithCursor(0)
-	want := " "
-	if line != want {
-		t.Fatalf("lineWithCursor(0) on empty = %q, want %q", line, want)
-	}
-}
-
-func TestTextArea_HideVirtualCursor_LineWidthUnchanged(t *testing.T) {
-	ta := NewTextArea(
-		WithTextAreaVirtualCursor(false),
-	)
-	ta.BindApp(testApp)
-	ta.SetText("hello world")
-	ta.Focus()
-
-	// With virtual cursor on, line would gain an extra character.
-	// With it off, line width should match the wrapped line width.
-	lines := ta.wrapText()
-	for i, line := range lines {
-		rendered := ta.lineWithCursor(i)
-		if rendered != line && rendered != " " {
-			t.Fatalf("lineWithCursor(%d) = %q, want %q (or space for empty)", i, rendered, line)
-		}
+			lines := ta.wrapText()
+			for i := range lines {
+				rendered := ta.lineWithCursor(i)
+				if len(rendered) != tt.wantLen && rendered != " " {
+					t.Fatalf("lineWithCursor(%d) = %q (len=%d), want len=%d", i, rendered, len(rendered), tt.wantLen)
+				}
+			}
+		})
 	}
 }

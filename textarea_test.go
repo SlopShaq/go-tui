@@ -1,6 +1,9 @@
 package tui
 
-import "testing"
+import (
+	"testing"
+	"unicode/utf8"
+)
 
 func TestTextArea_SetText_UsesRuneCursorPosition(t *testing.T) {
 	ta := NewTextArea()
@@ -75,8 +78,8 @@ func TestTextArea_HideVirtualCursor(t *testing.T) {
 			lines := ta.wrapText()
 			for i := range lines {
 				rendered := ta.lineWithCursor(i)
-				if len(rendered) != tt.wantLen {
-					t.Fatalf("lineWithCursor(%d) = %q (len=%d), want len=%d", i, rendered, len(rendered), tt.wantLen)
+				if utf8.RuneCountInString(rendered) != tt.wantLen {
+					t.Fatalf("lineWithCursor(%d) = %q (len=%d), want len=%d", i, rendered, utf8.RuneCountInString(rendered), tt.wantLen)
 				}
 			}
 		})

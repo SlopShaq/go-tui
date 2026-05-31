@@ -503,7 +503,7 @@ func (t *TextArea) lineWithCursor(lineIdx int) string {
 	line := lines[lineIdx]
 
 	if lineIdx == row && t.focused.Get() {
-		// Skip virtual cursor when using hardware cursor (cursorRune == ' ')
+		// Skip virtual cursor when hardware cursor mode is enabled
 		if t.hideVirtualCursor {
 			if line == "" {
 				return " "

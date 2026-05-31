@@ -19,7 +19,7 @@ import (
 )
 ```
 
-The convention is to alias the import as `tui`. This keeps element option calls readable (`tui.NewState`, `tui.KeyEscape`, etc.) and is the style used throughout the framework's own examples.
+The examples in this guide alias the import as `tui`. This is optional. The root package is already named `tui`, so `import "github.com/grindlemire/go-tui"` works on its own. We add the alias because the import path ends in `go-tui` while the package is `tui`, and writing it out keeps it clear which name option calls like `tui.NewState` and `tui.KeyEscape` use. Use whichever form you prefer.
 
 Everything else in the file (type declarations, constants, variables, helper functions) follows normal Go syntax.
 

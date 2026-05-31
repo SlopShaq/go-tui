@@ -162,12 +162,7 @@ func TestSuspendResume_FullScreenNoMouse(t *testing.T) {
 }
 
 func containsCall(haystack []string, needle string) bool {
-	for _, s := range haystack {
-		if s == needle {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(haystack, needle)
 }
 
 func TestSuspendSequence_InlineMode(t *testing.T) {

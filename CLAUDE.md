@@ -55,9 +55,9 @@ gcommit -m "chore: update golang.org/x dependencies"
 
 We enforce strict formatting, linting, and language modernization standards for all Go files:
 
-- **Formatting**: Format all Go files strictly using `gofumpt`:
+- **Formatting**: Format all Go files strictly using `golangci-lint fmt`:
   ```bash
-  gofumpt -w .
+  golangci-lint fmt
   ```
 - **Modernization**: Use `go fix` to apply and keep modern Go library usages and constructs updated:
   ```bash
@@ -65,7 +65,7 @@ We enforce strict formatting, linting, and language modernization standards for 
   ```
 - **Linting**: Verify code quality and static analysis warnings locally using `golangci-lint`:
   ```bash
-  golangci-lint run ./...
+  golangci-lint run
   ```
 - **Template Formatting**: Format custom `.gsx` template files using:
   ```bash

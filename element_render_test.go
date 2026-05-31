@@ -28,8 +28,8 @@ func TestRichText_BoldSurvivesWrap(t *testing.T) {
 	}
 	// The paragraph must occupy more than one row at width 10.
 	rowsWithText := 0
-	for y := 0; y < 6; y++ {
-		for x := 0; x < 10; x++ {
+	for y := range 6 {
+		for x := range 10 {
 			if buf.Cell(x, y).Rune != ' ' {
 				rowsWithText++
 				break
@@ -989,6 +989,7 @@ func TestRenderTree_TextWrapAutoScroll(t *testing.T) {
 		})
 	}
 }
+
 func TestRichText_LinkReachesCell(t *testing.T) {
 	buf := NewBuffer(10, 1)
 	e := New(

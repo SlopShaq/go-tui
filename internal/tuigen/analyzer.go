@@ -200,9 +200,9 @@ var knownAttributes = map[string]bool{
 	"onChange":         true,
 
 	// Markdown
-	"source":           true,
-	"state":            true,
-	"theme":            true,
+	"source": true,
+	"state":  true,
+	"theme":  true,
 }
 
 // stateGetRegex matches state.Get() calls to detect state usage in expressions.

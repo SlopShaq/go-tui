@@ -19,7 +19,7 @@ import (
 )
 ```
 
-The examples in this guide alias the import as `tui`. This is optional. The root package is already named `tui`, so `import "github.com/grindlemire/go-tui"` works on its own. We add the alias because the import path ends in `go-tui` while the package is `tui`, and writing it out keeps it clear which name option calls like `tui.NewState` and `tui.KeyEscape` use. Use whichever form you prefer.
+The examples alias the import as `tui`, but this is optional since the root package is already named `tui`. The alias just makes it explicit that option calls like `tui.NewState` use the `tui` name, even though the path ends in `go-tui`. Use whichever form you prefer.
 
 Everything else in the file (type declarations, constants, variables, helper functions) follows normal Go syntax.
 

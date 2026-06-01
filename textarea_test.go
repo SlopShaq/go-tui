@@ -1,6 +1,9 @@
 package tui
 
-import "testing"
+import (
+	"testing"
+	"unicode/utf8"
+)
 
 func TestTextArea_SetText_UsesRuneCursorPosition(t *testing.T) {
 	ta := NewTextArea()
@@ -46,5 +49,39 @@ func TestTextArea_MoveRight_UsesRuneLength(t *testing.T) {
 
 	if got := ta.cursorPos.Get(); got != 2 {
 		t.Fatalf("cursorPos = %d, want 2", got)
+	}
+}
+
+func TestTextArea_HideVirtualCursor(t *testing.T) {
+	type tc struct {
+		text    string
+		cursor  int
+		wantLen int
+	}
+
+	tests := map[string]tc{
+		"returns line unchanged":            {text: "hello", cursor: 3, wantLen: 5},
+		"returns space on empty line":       {text: "", cursor: 0, wantLen: 1},
+		"line width matches wrapped text":   {text: "hello world", cursor: 5, wantLen: 11},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			ta := NewTextArea(
+				WithTextAreaVirtualCursor(false),
+			)
+			ta.BindApp(testApp)
+			ta.SetText(tt.text)
+			ta.Focus()
+			ta.cursorPos.Set(tt.cursor)
+
+			lines := ta.wrapText()
+			for i := range lines {
+				rendered := ta.lineWithCursor(i)
+				if utf8.RuneCountInString(rendered) != tt.wantLen {
+					t.Fatalf("lineWithCursor(%d) = %q (len=%d), want len=%d", i, rendered, utf8.RuneCountInString(rendered), tt.wantLen)
+				}
+			}
+		})
 	}
 }

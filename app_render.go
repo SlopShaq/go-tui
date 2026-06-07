@@ -94,8 +94,8 @@ func (a *App) renderFrame() {
 	} else {
 		Render(a.terminal, a.buffer)
 	}
-	if a.postRenderHook != nil {
-		a.postRenderHook()
+	if a.PostRenderHook != nil {
+		a.PostRenderHook()
 	}
 }
 
@@ -108,8 +108,8 @@ func (a *App) renderInline() {
 		width := a.buffer.Width()
 		height := a.buffer.Height()
 		changes = make([]CellChange, 0, width*height)
-		for y := range height {
-			for x := range width {
+		for y := 0; y < height; y++ {
+			for x := 0; x < width; x++ {
 				cell := a.buffer.Cell(x, y)
 				changes = append(changes, CellChange{X: x, Y: y + a.inlineStartRow, Cell: cell})
 			}
@@ -125,12 +125,7 @@ func (a *App) renderInline() {
 		diff := a.buffer.Diff()
 		changes = make([]CellChange, len(diff))
 		for i, ch := range diff {
-			changes[i] = CellChange{
-				X:          ch.X,
-				Y:          ch.Y + a.inlineStartRow,
-				Cell:       ch.Cell,
-				EraseToEOL: ch.EraseToEOL,
-			}
+			changes[i] = CellChange{X: ch.X, Y: ch.Y + a.inlineStartRow, Cell: ch.Cell}
 		}
 	}
 
@@ -168,8 +163,8 @@ func (a *App) RenderFull() {
 	RenderFull(a.terminal, a.buffer)
 
 	a.rebuildDispatchTable()
-	if a.postRenderHook != nil {
-		a.postRenderHook()
+	if a.PostRenderHook != nil {
+		a.PostRenderHook()
 	}
 }
 

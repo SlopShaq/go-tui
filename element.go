@@ -60,11 +60,10 @@ type Element struct {
 	border      BorderStyle
 	borderStyle Style
 	background  *Style // nil = transparent
-	borderTitle string // title text drawn in the top border (DrawBoxWithTitle)
+	borderTitle string   // title text in top border (DrawBoxWithTitle)
 
 	// Text properties
 	text         string
-	richText     []TextSpan // when non-empty, takes precedence over text
 	textStyle    Style
 	textStyleSet bool // true if textStyle was explicitly configured (false = inherit from parent)
 	textAlign    TextAlign

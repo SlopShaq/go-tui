@@ -1,7 +1,5 @@
 package tui
 
-import "slices"
-
 import "github.com/grindlemire/go-tui/internal/debug"
 
 // Focusable is implemented by elements that can receive keyboard focus.
@@ -213,7 +211,10 @@ func (f *focusManager) Prev() {
 	}
 
 	// Find previous tab-stop element, skipping the current one.
-	startIdx := max(f.current, 0)
+	startIdx := f.current
+	if startIdx < 0 {
+		startIdx = 0
+	}
 
 	for i := 0; i < len(f.elements); i++ {
 		prevIdx := startIdx - 1 - i
@@ -330,7 +331,12 @@ func (f *focusManager) applyAutoFocus(root *Element) {
 			target = e
 			return true
 		}
-		return slices.ContainsFunc(e.children, walk)
+		for _, child := range e.children {
+			if walk(child) {
+				return true
+			}
+		}
+		return false
 	}
 	walk(root)
 	if target != nil {

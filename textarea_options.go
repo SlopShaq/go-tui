@@ -56,9 +56,6 @@ func WithTextAreaCursor(r rune) TextAreaOption {
 	}
 }
 
-// WithTextAreaVirtualCursor controls whether the virtual cursor character
-// is drawn in the text. When false, lineWithCursor returns the line unchanged
-// and applications can position the terminal's hardware cursor instead.
 func WithTextAreaVirtualCursor(visible bool) TextAreaOption {
 	return func(t *TextArea) {
 		t.hideVirtualCursor = !visible

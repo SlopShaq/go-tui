@@ -126,14 +126,6 @@ func (e *escBuilder) ClearLine() {
 	e.buf = append(e.buf, '2', 'K')
 }
 
-// EraseToEndOfLine clears from the cursor to the end of the current line
-// (ESC[K). Erased cells take the current background and are left in a blank,
-// unwritten state, so terminals trim them when copying a selection.
-func (e *escBuilder) EraseToEndOfLine() {
-	e.writeCSI()
-	e.buf = append(e.buf, 'K')
-}
-
 // HideCursor makes the cursor invisible.
 func (e *escBuilder) HideCursor() {
 	e.writeCSI()
@@ -196,23 +188,6 @@ func (e *escBuilder) DisableMouse() {
 	// Disable X10 mouse button tracking
 	e.writeCSI()
 	e.buf = append(e.buf, '?', '1', '0', '0', '0', 'l')
-}
-
-// EnableAltScroll enables alternate-scroll mode (DEC private mode 1007).
-// While on the alternate screen with mouse reporting disabled, the terminal
-// translates mouse-wheel events into cursor up/down keys. This lets the wheel
-// scroll the app while leaving native text selection and OSC 8 link clicking
-// intact. Terminals gate this on mouse reporting being off, so it is a no-op
-// when mouse mode is active.
-func (e *escBuilder) EnableAltScroll() {
-	e.writeCSI()
-	e.buf = append(e.buf, '?', '1', '0', '0', '7', 'h')
-}
-
-// DisableAltScroll disables alternate-scroll mode (DEC private mode 1007).
-func (e *escBuilder) DisableAltScroll() {
-	e.writeCSI()
-	e.buf = append(e.buf, '?', '1', '0', '0', '7', 'l')
 }
 
 // KittyKeyboardPush pushes Kitty keyboard protocol mode onto the terminal's
@@ -379,39 +354,4 @@ func (e *escBuilder) WriteString(s string) {
 // WriteBytes appends bytes to the buffer.
 func (e *escBuilder) WriteBytes(b []byte) {
 	e.buf = append(e.buf, b...)
-}
-
-// OpenHyperlink writes an OSC 8 hyperlink-open sequence for the given URL.
-// Control bytes (< 0x20 and 0x7f) are stripped so they cannot terminate or
-// corrupt the sequence.
-func (e *escBuilder) OpenHyperlink(url string) {
-	e.buf = append(e.buf, 0x1b, ']', '8', ';', ';')
-	for i := 0; i < len(url); i++ {
-		if c := url[i]; c >= 0x20 && c != 0x7f {
-			e.buf = append(e.buf, c)
-		}
-	}
-	e.buf = append(e.buf, 0x1b, '\\')
-}
-
-// CloseHyperlink writes an OSC 8 hyperlink-close sequence (empty URL).
-func (e *escBuilder) CloseHyperlink() {
-	e.buf = append(e.buf, 0x1b, ']', '8', ';', ';', 0x1b, '\\')
-}
-
-// linkTransition moves the open OSC 8 hyperlink from open to next, emitting the
-// close/open sequences as needed, and returns the new open link. Passing
-// next == "" closes any open link. Used by both the diff-based and row-based
-// renderers so they emit identical hyperlink sequences.
-func linkTransition(e *escBuilder, open, next string) string {
-	if next == open {
-		return open
-	}
-	if open != "" {
-		e.CloseHyperlink()
-	}
-	if next != "" {
-		e.OpenHyperlink(next)
-	}
-	return next
 }

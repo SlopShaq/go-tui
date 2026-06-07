@@ -1,4 +1,4 @@
-module github.com/grindlemire/go-tui
+module github.com/SlopShaq/go-tui
 
 go 1.25.1
 

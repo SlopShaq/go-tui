@@ -17,6 +17,7 @@ import (
 func parseInput(data []byte) []Event {
 	debug.Topic("keys", "parseInput: raw bytes (%d): %v", len(data), formatBytes(data))
 	var events []Event
+	pasteMode := false
 	i := 0
 
 	for i < len(data) {
@@ -35,6 +36,17 @@ func parseInput(data []byte) []Event {
 			next := data[i+1]
 			switch next {
 			case '[':
+				// Check for bracketed paste sequences \e[200~ (start) / \e[201~ (end)
+				if matchCSI(data[i:], "200~") {
+					pasteMode = true
+					i += 6
+					continue
+				}
+				if matchCSI(data[i:], "201~") {
+					pasteMode = false
+					i += 6
+					continue
+				}
 				// Check for SGR mouse sequence (ESC [ <)
 				if i+2 < len(data) && data[i+2] == '<' {
 					mouseEvent, consumed := parseMouseSGR(data[i:])
@@ -89,6 +101,9 @@ func parseInput(data []byte) []Event {
 
 		// Control characters (0x00-0x1F, except 0x1b which is handled above)
 		if b < 0x20 {
+			if pasteMode && b == 0x0d {
+				b = 0x0a
+			}
 			key, r, mod := controlToKey(b)
 			events = append(events, KeyEvent{Key: key, Rune: r, Mod: mod})
 			i++
@@ -223,6 +238,21 @@ func parseCSISequence(data []byte) (Key, Modifier, rune, int) {
 
 // parseCSI parses a complete CSI sequence given parameters and final byte.
 // Returns (Key, Modifier).
+func matchCSI(data []byte, suffix string) bool {
+	if len(data) < 3 || data[0] != 0x1b || data[1] != '[' {
+		return false
+	}
+	if len(data) < 3+len(suffix) {
+		return false
+	}
+	for i := 0; i < len(suffix); i++ {
+		if data[2+i] != suffix[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func parseCSI(params []int, final byte) (Key, Modifier) {
 	mod := ModNone
 

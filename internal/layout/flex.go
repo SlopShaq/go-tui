@@ -109,6 +109,7 @@ func distributeLineMainAxis(items []flexItem, mainSize, gap int, justify Justify
 		for i := range items {
 			items[i].mainSize = items[i].baseSize
 		}
+		freeSpace = max(0, freeSpace)
 	}
 
 	// Phase 3: Apply min/max constraints

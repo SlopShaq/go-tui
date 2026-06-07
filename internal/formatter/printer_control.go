@@ -287,17 +287,15 @@ func splitTopLevelArgs(args string) []string {
 				inBacktick = false
 			}
 		case inString:
-			switch ch {
-			case '\\':
+			if ch == '\\' {
 				i++ // skip escaped char
-			case '"':
+			} else if ch == '"' {
 				inString = false
 			}
 		case inRune:
-			switch ch {
-			case '\\':
+			if ch == '\\' {
 				i++
-			case '\'':
+			} else if ch == '\'' {
 				inRune = false
 			}
 		default:

@@ -1,5 +1,9 @@
 package tui
 
+import (
+	"os"
+)
+
 // Dispatch routes a single event through go-tui's dispatch system.
 // KeyEvent goes through the dispatch table (component model) or global key handler
 // (legacy), then falls through to the focus manager.
@@ -103,6 +107,7 @@ func (a *App) dispatchMouseToComponents(me MouseEvent) bool {
 
 // readInputEvents reads terminal input in a goroutine and queues events.
 func (a *App) readInputEvents() {
+	os.Stdout.Write([]byte("\x1b[?2004h"))
 	for {
 		select {
 		case <-a.stopCh:

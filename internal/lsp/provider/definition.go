@@ -259,7 +259,10 @@ func findRefAttrPosition(content string, elem *tuigen.Element) (line, col int, f
 	lines := strings.Split(content, "\n")
 	startLine := elem.Position.Line - 1 // 0-indexed
 
-	maxSearch := min(startLine+20, len(lines))
+	maxSearch := startLine + 20
+	if maxSearch > len(lines) {
+		maxSearch = len(lines)
+	}
 
 	for lineIdx := startLine; lineIdx < maxSearch; lineIdx++ {
 		idx := strings.Index(lines[lineIdx], refAttr)
@@ -460,7 +463,10 @@ func (d *definitionProvider) findFuncInAST(ast *tuigen.File, name string, uri st
 			// Find the actual offset of the name in the code. For methods
 			// like "func (c *chat) updateHeight()", the name doesn't
 			// immediately follow "func ".
-			nameIdx := max(strings.Index(fn.Code, fnName+"("), 0)
+			nameIdx := strings.Index(fn.Code, fnName+"(")
+			if nameIdx < 0 {
+				nameIdx = 0
+			}
 			startCol := fn.Position.Column - 1 + nameIdx
 			return &Location{
 				URI: uri,

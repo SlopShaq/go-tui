@@ -151,20 +151,20 @@ func findGoCodeWithVariable(nodes []tuigen.Node, varName string) *tuigen.GoCode 
 func containsVarDecl(code, varName string) bool {
 	if idx := strings.Index(code, ":="); idx > 0 {
 		lhs := code[:idx]
-		parts := strings.SplitSeq(lhs, ",")
-		for part := range parts {
+		parts := strings.Split(lhs, ",")
+		for _, part := range parts {
 			if strings.TrimSpace(part) == varName {
 				return true
 			}
 		}
 	}
 
-	if after, ok := strings.CutPrefix(strings.TrimSpace(code), "var "); ok {
-		rest := after
+	if strings.HasPrefix(strings.TrimSpace(code), "var ") {
+		rest := strings.TrimPrefix(strings.TrimSpace(code), "var ")
 		if idx := strings.Index(rest, "="); idx > 0 {
 			lhs := rest[:idx]
-			parts := strings.SplitSeq(lhs, ",")
-			for part := range parts {
+			parts := strings.Split(lhs, ",")
+			for _, part := range parts {
 				part = strings.TrimSpace(part)
 				fields := strings.Fields(part)
 				if len(fields) > 0 && fields[0] == varName {
@@ -238,11 +238,11 @@ func indexWholeWordIn(s, word string) int {
 // parseFuncName extracts the function name from a Go function definition.
 // Handles both plain functions ("func Name(") and methods ("func (r *T) Name(").
 func parseFuncName(code string) string {
-	_, after, ok := strings.Cut(code, "func ")
-	if !ok {
+	idx := strings.Index(code, "func ")
+	if idx < 0 {
 		return ""
 	}
-	rest := strings.TrimSpace(after)
+	rest := strings.TrimSpace(code[idx+5:])
 
 	// Skip receiver type: func (r *Receiver) Name(...)
 	if len(rest) > 0 && rest[0] == '(' {
@@ -253,9 +253,9 @@ func parseFuncName(code string) string {
 		rest = strings.TrimSpace(rest[closeIdx+1:])
 	}
 
-	before, _, ok := strings.Cut(rest, "(")
-	if !ok {
+	parenIdx := strings.Index(rest, "(")
+	if parenIdx < 0 {
 		return ""
 	}
-	return strings.TrimSpace(before)
+	return strings.TrimSpace(rest[:parenIdx])
 }

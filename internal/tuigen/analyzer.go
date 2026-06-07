@@ -97,7 +97,6 @@ var knownTags = map[string]bool{
 	"hr":       true,
 	"br":       true,
 	"modal":    true,
-	"markdown": true,
 }
 
 // voidElements lists elements that cannot have children.
@@ -106,7 +105,6 @@ var voidElements = map[string]bool{
 	"br":       true,
 	"input":    true,
 	"textarea": true,
-	"markdown": true,
 }
 
 // knownAttributes lists all supported element attributes.
@@ -141,7 +139,6 @@ var knownAttributes = map[string]bool{
 	// Visual
 	"border":             true,
 	"borderStyle":        true,
-	"borderTitle":        true,
 	"background":         true,
 	"backgroundGradient": true,
 
@@ -153,8 +150,8 @@ var knownAttributes = map[string]bool{
 	// Focus
 	"onFocus":   true,
 	"onBlur":    true,
-	"focusable": true,
-	"autoFocus": true,
+	"focusable":  true,
+	"autoFocus":  true,
 
 	// Scroll
 	"scrollable":          true,
@@ -198,13 +195,17 @@ var knownAttributes = map[string]bool{
 	"submitKey":        true,
 	"onSubmit":         true,
 	"value":            true,
-	"onChange":         true,
-
-	// Markdown
-	"source": true,
-	"state":  true,
-	"theme":  true,
+	"onChange":          true,
 }
+
+// stateNewStateRegex matches tui.NewState(...) declarations.
+// It captures the variable name and the initializer expression.
+var stateNewStateRegex = regexp.MustCompile(`(\w+)\s*:=\s*tui\.NewState\((.+)\)`)
+
+// eventsNewEventsRegex matches tui.NewEvents("topic") and
+// tui.NewEvents[T]("topic") declarations.
+// It captures the variable name.
+var eventsNewEventsRegex = regexp.MustCompile(`(\w+)\s*:=\s*tui\.NewEvents(?:\[.+\])?\([^)]*\)`)
 
 // stateGetRegex matches state.Get() calls to detect state usage in expressions.
 // This pattern handles:
@@ -212,20 +213,25 @@ var knownAttributes = map[string]bool{
 // - Dereferenced pointer: (*count).Get()
 var stateGetRegex = regexp.MustCompile(`(?:\(\*(\w+)\)|(\w+))\.Get\(\)`)
 
+// stateParamRegex matches *tui.State[T] parameter types.
+// Uses greedy .+ but anchored to end of string with $, which works because
+// parameter type strings don't have trailing content after the closing bracket.
+var stateParamRegex = regexp.MustCompile(`\*tui\.State\[(.+)\]$`)
+
 // attributeSimilar maps common typos to correct attribute names.
 var attributeSimilar = map[string]string{
-	"colour":       "color",
-	"color":        "background",
-	"onfocus":      "onFocus",
-	"onblur":       "onBlur",
-	"flexgrow":     "flexGrow",
-	"flexshrink":   "flexShrink",
-	"textstyle":    "textStyle",
-	"textalign":    "textAlign",
-	"alignself":    "alignSelf",
-	"flexwrap":     "flexWrap",
-	"aligncontent": "alignContent",
-	"borderstyle":  "borderStyle",
+	"colour":      "color",
+	"color":       "background",
+	"onfocus":     "onFocus",
+	"onblur":      "onBlur",
+	"flexgrow":    "flexGrow",
+	"flexshrink":  "flexShrink",
+	"textstyle":   "textStyle",
+	"textalign":   "textAlign",
+	"alignself":     "alignSelf",
+	"flexwrap":      "flexWrap",
+	"aligncontent":  "alignContent",
+	"borderstyle":   "borderStyle",
 }
 
 // Analyze performs semantic analysis on a parsed file.
@@ -561,22 +567,6 @@ func (a *Analyzer) addMissingImports() {
 			Path:  "github.com/grindlemire/go-tui",
 		})
 	}
-}
-
-// getTUIAlias returns the import alias for github.com/grindlemire/go-tui in the current file.
-func (a *Analyzer) getTUIAlias() string {
-	if a.file == nil {
-		return "tui"
-	}
-	for _, imp := range a.file.Imports {
-		if imp.Path == "github.com/grindlemire/go-tui" {
-			if imp.Alias != "" {
-				return imp.Alias
-			}
-			return "tui"
-		}
-	}
-	return "tui"
 }
 
 // validateChildrenField checks that a method templ using {children...} has a

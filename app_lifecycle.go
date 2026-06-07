@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"fmt"
 	"strings"
 
@@ -18,6 +19,7 @@ func (a *App) SnapshotFrame() string {
 // Close restores the terminal to its original state.
 // Must be called when the application exits. Safe to call multiple times.
 func (a *App) Close() error {
+	os.Stdout.Write([]byte("\x1b[?2004l"))
 	var closeErr error
 	a.closeOnce.Do(func() {
 		// Stop goroutines if not already stopped
@@ -28,8 +30,10 @@ func (a *App) Close() error {
 			a.signalCleanup()
 		}
 
-		// Disable mouse event reporting, or alternate-scroll if that was used.
-		a.disableInputReporting()
+		// Disable mouse event reporting (only if it was enabled)
+		if a.mouseEnabled {
+			a.terminal.DisableMouse()
+		}
 
 		// Show cursor (only if it was hidden)
 		if !a.cursorVisible {
@@ -234,7 +238,7 @@ func (a *App) PrintAboveElement(v Viewable) {
 
 	esc := newEscBuilder(256)
 	var seq strings.Builder
-	for row := range height {
+	for row := 0; row < height; row++ {
 		line := bufferRowToANSI(buf, row, esc, caps)
 		a.inlineSession.appendRow(&seq, &a.inlineLayout, line)
 	}

@@ -123,9 +123,10 @@ func WithMouse() AppOption {
 }
 
 // WithPostRenderHook sets a callback that runs after every render cycle.
+// The hook fires on the main goroutine after all Flush operations complete.
 func WithPostRenderHook(fn func()) AppOption {
 	return func(a *App) error {
-		a.postRenderHook = fn
+		a.PostRenderHook = fn
 		return nil
 	}
 }

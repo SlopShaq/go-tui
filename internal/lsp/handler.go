@@ -21,7 +21,7 @@ type InitializeParams struct {
 
 // ClientCapabilities represents client capabilities.
 type ClientCapabilities struct {
-	TextDocument TextDocumentClientCapabilities `json:"textDocument"`
+	TextDocument TextDocumentClientCapabilities `json:"textDocument,omitempty"`
 }
 
 // TextDocumentClientCapabilities represents text document capabilities.

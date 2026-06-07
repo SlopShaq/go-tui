@@ -137,12 +137,12 @@ func extractFuncName(code string) string {
 		}
 	}
 
-	before, _, ok := strings.Cut(code, "(")
-	if !ok {
+	idx := strings.Index(code, "(")
+	if idx == -1 {
 		return "unknown"
 	}
 
-	name := strings.TrimSpace(before)
+	name := strings.TrimSpace(code[:idx])
 	if name == "" {
 		return "unknown"
 	}
@@ -251,11 +251,10 @@ func findComponentEnd(comp *tuigen.Component, content string) Position {
 	braceCount := 0
 	started := false
 	for i := startOffset; i < len(content); i++ {
-		switch content[i] {
-		case '{':
+		if content[i] == '{' {
 			braceCount++
 			started = true
-		case '}':
+		} else if content[i] == '}' {
 			braceCount--
 			if started && braceCount == 0 {
 				return offsetToPosition(content, i+1)

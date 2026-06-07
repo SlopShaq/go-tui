@@ -369,7 +369,10 @@ func (s *inlineSession) consumeForGrowth(layout *inlineLayoutState, historyCapac
 		case topBlanks > 1:
 			// Consume as many top blanks as possible while preserving row 0.
 			// This avoids introducing an extra blank row into scrollback.
-			consume := min(topBlanks-1, remaining)
+			consume := topBlanks - 1
+			if consume > remaining {
+				consume = remaining
+			}
 			topRow := topBlanks - consume
 			inlineAppendScrollUp(&seq, topRow, historyCapacity-1, consume)
 			layout.contentStartRow -= consume
@@ -381,7 +384,13 @@ func (s *inlineSession) consumeForGrowth(layout *inlineLayoutState, historyCapac
 			consume := remaining
 			inlineAppendScrollUp(&seq, 0, historyCapacity-1, consume)
 
-			removedContent := min(max(consume-topBlanks, 0), layout.visibleRows)
+			removedContent := consume - topBlanks
+			if removedContent < 0 {
+				removedContent = 0
+			}
+			if removedContent > layout.visibleRows {
+				removedContent = layout.visibleRows
+			}
 
 			layout.visibleRows -= removedContent
 			layout.contentStartRow = 0

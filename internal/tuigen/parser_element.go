@@ -358,14 +358,13 @@ func (p *Parser) parseAttribute() *Attribute {
 		value = p.parseGoExprNode()
 	case TokenIdent:
 		// Could be true, false, or other identifier
-		switch p.current.Literal {
-		case "true":
+		if p.current.Literal == "true" {
 			value = &BoolLit{Value: true, Position: p.position()}
 			p.advance()
-		case "false":
+		} else if p.current.Literal == "false" {
 			value = &BoolLit{Value: false, Position: p.position()}
 			p.advance()
-		default:
+		} else {
 			// Treat as identifier expression
 			value = &GoExpr{Code: p.current.Literal, Position: p.position()}
 			p.advance()

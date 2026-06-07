@@ -224,5 +224,6 @@ func (a *App) publishTopic(topic string, eventType reflect.Type, event any) {
 }
 
 func eventTypeOf[T any]() reflect.Type {
-	return reflect.TypeFor[T]()
+	var t *T
+	return reflect.TypeOf(t).Elem()
 }

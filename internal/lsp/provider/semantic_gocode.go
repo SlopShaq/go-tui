@@ -594,7 +594,7 @@ func parseFuncSignatureForTokens(code string) (name, receiver, typeParams string
 
 	// Parse parameters
 	if paramStr != "" {
-		for p := range strings.SplitSeq(paramStr, ",") {
+		for _, p := range strings.Split(paramStr, ",") {
 			p = strings.TrimSpace(p)
 			parts := strings.SplitN(p, " ", 2)
 			if len(parts) == 2 {

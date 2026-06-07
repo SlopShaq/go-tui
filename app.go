@@ -76,11 +76,11 @@ type App struct {
 	savedInlineLayout   inlineLayoutState
 
 	// Component model (mount system for struct components)
-	mounts         *mountState
-	dispatchTable  *dispatchTable // Key broadcast dispatch table, rebuilt on dirty frames
-	rootComponent  Component      // Root struct component (set via SetRoot with Component)
-	postRenderHook func()
-	rootUnbinder   AppUnbinder // Tracks the current root's AppUnbinder for swap-time teardown. Covers SetRootView where rootComponent is nil.
+	mounts        *mountState
+	dispatchTable *dispatchTable // Key broadcast dispatch table, rebuilt on dirty frames
+	rootComponent Component      // Root struct component (set via SetRoot with Component)
+	PostRenderHook func()
+	rootUnbinder  AppUnbinder    // Tracks the current root's AppUnbinder for swap-time teardown. Covers SetRootView where rootComponent is nil.
 
 	// Component watchers (from WatcherProvider components)
 	componentWatchers        []Watcher
@@ -182,7 +182,9 @@ func NewApp(opts ...AppOption) (*App, error) {
 	app.startEventMerge()
 
 	// Apply terminal settings based on options
-	app.enableInputReporting()
+	if app.mouseEnabled {
+		terminal.EnableMouse()
+	}
 	if !app.cursorVisible {
 		terminal.HideCursor()
 	}
@@ -192,7 +194,9 @@ func NewApp(opts ...AppOption) (*App, error) {
 		if err := interruptible.EnableInterrupt(); err != nil {
 			app.Stop() // Stop background goroutines (startWatcherBridge, startEventMerge)
 			reader.Close()
-			app.disableInputReporting()
+			if app.mouseEnabled {
+				terminal.DisableMouse()
+			}
 			if !app.cursorVisible {
 				terminal.ShowCursor()
 			}
@@ -288,7 +292,9 @@ func NewAppWithReader(reader EventReader, opts ...AppOption) (*App, error) {
 	app.startEventMerge()
 
 	// Apply terminal settings based on options
-	app.enableInputReporting()
+	if app.mouseEnabled {
+		terminal.EnableMouse()
+	}
 	if !app.cursorVisible {
 		terminal.HideCursor()
 	}
@@ -298,7 +304,9 @@ func NewAppWithReader(reader EventReader, opts ...AppOption) (*App, error) {
 		if err := interruptible.EnableInterrupt(); err != nil {
 			app.Stop() // Stop background goroutines (startWatcherBridge, startEventMerge)
 			reader.Close()
-			app.disableInputReporting()
+			if app.mouseEnabled {
+				terminal.DisableMouse()
+			}
 			if !app.cursorVisible {
 				terminal.ShowCursor()
 			}

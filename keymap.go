@@ -48,3 +48,4 @@ func OnFocused(m KeyMatcher, handler func(KeyEvent)) KeyBinding {
 	p.FocusRequired = true
 	return KeyBinding{Pattern: p, Handler: handler, Stop: true}
 }
+

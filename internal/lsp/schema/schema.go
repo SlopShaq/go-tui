@@ -137,13 +137,6 @@ var Elements = map[string]*ElementDef{
 		SelfClosing: false,
 		Category:    "container",
 	},
-	"markdown": {
-		Tag:         "markdown",
-		Description: "Renders a markdown string into the widget tree (headings, bold/italic, inline code, fenced code blocks, tables, lists, blockquotes, links). A pure content renderer: wrap it in a scrollable container to scroll long documents.",
-		Attributes:  markdownAttrs(),
-		SelfClosing: true,
-		Category:    "display",
-	},
 }
 
 // EventHandlers maps event attribute names to their definitions.
@@ -283,7 +276,6 @@ func visualAttrs() []AttributeDef {
 		{Name: "border", Type: "border", Description: "Border style (none, single, double, rounded, thick)", Category: "visual"},
 		{Name: "borderStyle", Type: "string", Description: "Border style name", Category: "visual"},
 		{Name: "background", Type: "color", Description: "Background color", Category: "visual"},
-		{Name: "borderTitle", Type: "string", Description: "Title text drawn in the top border", Category: "visual"},
 	}
 }
 
@@ -422,20 +414,6 @@ func modalAttrs() []AttributeDef {
 		{Name: "closeOnBackdropClick", Type: "bool", Description: "Clicking backdrop closes the modal (default true)", Category: "event"},
 		{Name: "trapFocus", Type: "bool", Description: "Tab/Shift+Tab restricted to modal children; when true, also blocks unhandled keys from reaching parent components (default true)", Category: "event"},
 		{Name: "keyMap", Type: "expression", Description: "Custom KeyMap bindings for the modal; fire before the catch-all when trapFocus is true", Category: "event"},
-		{Name: "ref", Type: "expression", Description: "Bind this element to a ref variable", Category: "ref"},
-		{Name: "deps", Type: "expression", Description: "Explicit state dependencies for reactive bindings", Category: "generic"},
-	}
-}
-
-// markdownAttrs returns attributes for markdown elements.
-func markdownAttrs() []AttributeDef {
-	return []AttributeDef{
-		{Name: "id", Type: "string", Description: "Unique identifier for the element", Category: "generic"},
-		{Name: "class", Type: "string", Description: "Tailwind-style CSS classes", Category: "generic"},
-		{Name: "source", Type: "expression", Description: "Static markdown content (string expression)", Category: "generic"},
-		{Name: "state", Type: "expression", Description: "Reactive *State[string] markdown source; re-renders on change", Category: "generic"},
-		{Name: "width", Type: "int", Description: "Fixed render width in characters (0 = fill available width)", Category: "layout"},
-		{Name: "theme", Type: "expression", Description: "tui.MarkdownTheme overriding the default styling", Category: "visual"},
 		{Name: "ref", Type: "expression", Description: "Bind this element to a ref variable", Category: "ref"},
 		{Name: "deps", Type: "expression", Description: "Explicit state dependencies for reactive bindings", Category: "generic"},
 	}

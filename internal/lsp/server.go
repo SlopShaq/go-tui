@@ -275,8 +275,8 @@ func (s *Server) readMessage() ([]byte, error) {
 		if line == "" {
 			break
 		}
-		if after, ok := strings.CutPrefix(line, "Content-Length:"); ok {
-			lenStr := strings.TrimSpace(after)
+		if strings.HasPrefix(line, "Content-Length:") {
+			lenStr := strings.TrimSpace(strings.TrimPrefix(line, "Content-Length:"))
 			contentLength, err = strconv.Atoi(lenStr)
 			if err != nil {
 				return nil, fmt.Errorf("invalid Content-Length: %w", err)

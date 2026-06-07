@@ -82,35 +82,14 @@ func (t *ANSITerminal) Flush(changes []CellChange) {
 
 	t.esc.Reset()
 	lastX, lastY := -1, -1
-	openLink := "" // currently-open OSC 8 hyperlink ("" = none)
 
 	for _, ch := range changes {
-		// Erase-to-end-of-line: clear the row's tail with ESC[K. Reset style
-		// first so the erased cells take the default background and stay blank
-		// (terminals trim such cells when copying a selection). Checked before
-		// the continuation guard below, since this change carries a zero Cell
-		// (Width 0) that would otherwise be mistaken for a continuation cell.
-		if ch.EraseToEOL {
-			if t.caps.Hyperlinks {
-				openLink = linkTransition(t.esc, openLink, "")
-			}
-			t.esc.MoveTo(ch.X, ch.Y)
-			if !t.lastStyle.Equal(NewStyle()) {
-				t.esc.ResetStyle()
-				t.lastStyle = NewStyle()
-			}
-			t.esc.EraseToEndOfLine()
-			lastX, lastY = -1, -1
-			continue
-		}
-
 		// Skip continuation cells entirely - they represent the second column
 		// of a wide character, which was already rendered by the primary cell.
 		// Processing them would incorrectly move the cursor backwards.
 		if ch.Cell.IsContinuation() {
 			continue
 		}
-
 		// Optimize cursor movement
 		needsMove := false
 		if ch.Y != lastY {
@@ -121,16 +100,7 @@ func (t *ANSITerminal) Flush(changes []CellChange) {
 		}
 
 		if needsMove {
-			// A non-contiguous jump ends any open hyperlink run.
-			if t.caps.Hyperlinks {
-				openLink = linkTransition(t.esc, openLink, "")
-			}
 			t.esc.MoveTo(ch.X, ch.Y)
-		}
-
-		// Open/close OSC 8 hyperlinks around contiguous same-link runs.
-		if t.caps.Hyperlinks {
-			openLink = linkTransition(t.esc, openLink, ch.Cell.Link)
 		}
 
 		// Only emit style changes when style differs
@@ -152,10 +122,6 @@ func (t *ANSITerminal) Flush(changes []CellChange) {
 			lastX = ch.X + int(ch.Cell.Width) - 1
 		}
 		lastY = ch.Y
-	}
-
-	if t.caps.Hyperlinks {
-		linkTransition(t.esc, openLink, "")
 	}
 
 	t.out.Write(t.esc.Bytes())
@@ -248,20 +214,6 @@ func (t *ANSITerminal) EnableMouse() {
 func (t *ANSITerminal) DisableMouse() {
 	t.esc.Reset()
 	t.esc.DisableMouse()
-	t.out.Write(t.esc.Bytes())
-}
-
-// EnableAltScroll enables alternate-scroll mode (mouse wheel -> cursor keys).
-func (t *ANSITerminal) EnableAltScroll() {
-	t.esc.Reset()
-	t.esc.EnableAltScroll()
-	t.out.Write(t.esc.Bytes())
-}
-
-// DisableAltScroll disables alternate-scroll mode.
-func (t *ANSITerminal) DisableAltScroll() {
-	t.esc.Reset()
-	t.esc.DisableAltScroll()
 	t.out.Write(t.esc.Bytes())
 }
 

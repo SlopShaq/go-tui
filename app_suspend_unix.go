@@ -15,7 +15,9 @@ func (a *App) suspendTerminal() {
 		a.onSuspend()
 	}
 
-	a.disableInputReporting()
+	if a.mouseEnabled {
+		a.terminal.DisableMouse()
+	}
 
 	a.terminal.ShowCursor()
 
@@ -66,7 +68,10 @@ func (a *App) resumeTerminal() {
 		// the overlay alt screen.
 		if a.savedInlineHeight > 0 {
 			_, termHeight := a.terminal.Size()
-			a.savedInlineStartRow = max(termHeight-a.savedInlineHeight, 0)
+			a.savedInlineStartRow = termHeight - a.savedInlineHeight
+			if a.savedInlineStartRow < 0 {
+				a.savedInlineStartRow = 0
+			}
 		}
 		a.terminal.EnterAltScreen()
 		a.terminal.Clear()
@@ -74,7 +79,10 @@ func (a *App) resumeTerminal() {
 		// Inline mode: the shell printed job control messages while stopped.
 		// Recalculate where the widget should be drawn.
 		_, termHeight := a.terminal.Size()
-		a.inlineStartRow = max(termHeight-a.inlineHeight, 0)
+		a.inlineStartRow = termHeight - a.inlineHeight
+		if a.inlineStartRow < 0 {
+			a.inlineStartRow = 0
+		}
 		// Reset style tracking: the terminal's SGR state is unknown after
 		// going through cooked mode and shell interaction. Without this,
 		// Flush may skip emitting style codes for cells whose style matches
@@ -89,7 +97,9 @@ func (a *App) resumeTerminal() {
 		a.terminal.HideCursor()
 	}
 
-	a.enableInputReporting()
+	if a.mouseEnabled {
+		a.terminal.EnableMouse()
+	}
 
 	a.needsFullRedraw = true
 	a.MarkDirty()

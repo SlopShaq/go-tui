@@ -382,8 +382,7 @@ func DrawBoxWithTitle(buf *Buffer, rect Rect, border BorderStyle, title string, 
 	drawBoxTitle(buf, rect, title, style)
 }
 
-// drawBoxTitle draws a centered title string on the top border line of the box.
-// drawBoxTitle does not draw the box itself — use DrawBoxWithTitle for that.
+// drawBoxTitle draws a centered title string on the top border line.
 func drawBoxTitle(buf *Buffer, rect Rect, title string, style Style) {
 	runes, startX, ok := prepareTitle(title, rect)
 	if !ok {
@@ -399,7 +398,7 @@ func drawBoxTitle(buf *Buffer, rect Rect, title string, style Style) {
 // drawBoxTitleClipped draws a centered title string on the top border line,
 // skipping any rune outside the given clip rectangle.
 func drawBoxTitleClipped(buf *Buffer, rect Rect, title string, style Style, clipRect Rect) {
-	// Reject if the title row is outside the clip rect's Y range.
+	// Reject if the title row is outside the clip rect Y range.
 	if rect.Y < clipRect.Y || rect.Y >= clipRect.Y+clipRect.Height {
 		return
 	}
@@ -422,9 +421,11 @@ func prepareTitle(title string, rect Rect) (runes []rune, startX int, ok bool) {
 	if availableWidth <= 0 {
 		return nil, 0, false
 	}
+
 	titleRunes := []rune(title)
 	titleWidth := 0
 	truncatedRunes := make([]rune, 0, len(titleRunes))
+
 	for _, r := range titleRunes {
 		w := RuneWidth(r)
 		if titleWidth+w > availableWidth {
@@ -433,9 +434,11 @@ func prepareTitle(title string, rect Rect) (runes []rune, startX int, ok bool) {
 		truncatedRunes = append(truncatedRunes, r)
 		titleWidth += w
 	}
+
 	if len(truncatedRunes) == 0 {
 		return nil, 0, false
 	}
+
 	startX = rect.X + 1 + (availableWidth-titleWidth)/2
 	return truncatedRunes, startX, true
 }

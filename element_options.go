@@ -216,7 +216,6 @@ func WithBackground(style Style) Option {
 func WithText(content string) Option {
 	return func(e *Element) {
 		e.text = content
-		e.richText = nil
 	}
 }
 

@@ -26,7 +26,6 @@ func bufferRowToANSI(buf *Buffer, row int, esc *escBuilder, caps Capabilities) s
 
 	var prevStyle Style
 	styleSet := false
-	openLink := "" // currently-open OSC 8 hyperlink ("" = none)
 
 	for x := 0; x <= trimEnd; x++ {
 		c := buf.Cell(x, row)
@@ -34,11 +33,6 @@ func bufferRowToANSI(buf *Buffer, row int, esc *escBuilder, caps Capabilities) s
 		// Skip continuation cells of wide characters.
 		if c.IsContinuation() {
 			continue
-		}
-
-		// Open/close OSC 8 hyperlinks around contiguous same-link runs.
-		if caps.Hyperlinks {
-			openLink = linkTransition(esc, openLink, c.Link)
 		}
 
 		// Emit style change if needed.
@@ -58,11 +52,6 @@ func bufferRowToANSI(buf *Buffer, row int, esc *escBuilder, caps Capabilities) s
 			r = ' '
 		}
 		esc.WriteRune(r)
-	}
-
-	// Close any open hyperlink before resetting style.
-	if caps.Hyperlinks {
-		linkTransition(esc, openLink, "")
 	}
 
 	// Reset at end so styling doesn't bleed.

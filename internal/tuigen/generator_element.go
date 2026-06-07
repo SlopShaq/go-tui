@@ -15,7 +15,7 @@ func (g *Generator) generateElement(elem *Element, parentVar string) string {
 // isComponentElement returns true if the tag represents a Component that
 // must be mounted via app.Mount() rather than constructed with tui.New().
 func isComponentElement(tag string) bool {
-	return tag == "textarea" || tag == "input" || tag == "modal" || tag == "markdown"
+	return tag == "textarea" || tag == "input" || tag == "modal"
 }
 
 // generateElementWithRefs generates code for an element with ref handling.
@@ -236,9 +236,9 @@ var attributeToOption = map[string]string{
 	"maxHeight":     "tui.WithMaxHeight(%s)",
 
 	// Flex container
-	"direction":    "tui.WithDirection(%s)",
-	"justify":      "tui.WithJustify(%s)",
-	"align":        "tui.WithAlign(%s)",
+	"direction": "tui.WithDirection(%s)",
+	"justify":   "tui.WithJustify(%s)",
+	"align":     "tui.WithAlign(%s)",
 	"gap":          "tui.WithGap(%s)",
 	"flexWrap":     "tui.WithFlexWrap(%s)",
 	"alignContent": "tui.WithAlignContent(%s)",
@@ -255,7 +255,6 @@ var attributeToOption = map[string]string{
 	// Visual
 	"border":             "tui.WithBorder(%s)",
 	"borderStyle":        "tui.WithBorderStyle(%s)",
-	"borderTitle":        "tui.WithBorderTitle(%s)",
 	"background":         "tui.WithBackground(%s)",
 	"backgroundGradient": "tui.WithBackgroundGradient(%s)",
 
@@ -396,19 +395,6 @@ var modalAttributeToOption = map[string]string{
 // modalHandlerAttributes maps modal event attributes to handler option funcs.
 var modalHandlerAttributes = map[string]string{}
 
-// markdownAttributeToOption maps markdown-specific attributes to tui.WithMarkdown* options.
-// source and state are distinct because the generator cannot type-discriminate a
-// single expression attribute: source={stringExpr}, state={*State[string] expr}.
-var markdownAttributeToOption = map[string]string{
-	"source": "tui.WithMarkdownSource(%s)",
-	"state":  "tui.WithMarkdownState(%s)",
-	"width":  "tui.WithMarkdownWidth(%s)",
-	"theme":  "tui.WithMarkdownTheme(%s)",
-}
-
-// markdownHandlerAttributes: markdown has no event handlers.
-var markdownHandlerAttributes = map[string]string{}
-
 // componentConstructor returns the tui.New* constructor for a component element tag.
 func componentConstructor(tag string) string {
 	switch tag {
@@ -418,8 +404,6 @@ func componentConstructor(tag string) string {
 		return "tui.NewInput"
 	case "modal":
 		return "tui.NewModal"
-	case "markdown":
-		return "tui.NewMarkdown"
 	default:
 		// Produce an identifier that won't compile, surfacing the mistake immediately.
 		return fmt.Sprintf("UNKNOWN_COMPONENT_%s", tag)
@@ -575,8 +559,6 @@ func componentAttributeMaps(tag string) (attrMap map[string]string, handlerMap m
 		return textareaAttributeToOption, textareaHandlerAttributes
 	case "modal":
 		return modalAttributeToOption, modalHandlerAttributes
-	case "markdown":
-		return markdownAttributeToOption, markdownHandlerAttributes
 	default:
 		// Unknown tags won't have any attribute mappings; componentConstructor
 		// will produce a compile error in the generated code.

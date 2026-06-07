@@ -23,11 +23,11 @@ type Input struct {
 	onChange         func(string)
 
 	// Reactive state
-	text      *State[string]
-	cursorPos *State[int]
-	scrollPos *State[int] // horizontal scroll offset (first visible rune index)
-	blink     *State[bool]
-	focused   *State[bool]
+	text       *State[string]
+	cursorPos  *State[int]
+	scrollPos  *State[int] // horizontal scroll offset (first visible rune index)
+	blink      *State[bool]
+	focused    *State[bool]
 }
 
 // Interface assertions
@@ -372,18 +372,25 @@ func (inp *Input) displayText() string {
 	visible := inp.visibleWidth()
 
 	inp.ensureCursorVisible()
-	scroll := min(
-		// Clamp scroll to valid range
-		max(
+	scroll := inp.scrollPos.Get()
 
-			inp.scrollPos.Get(), 0), len(runes))
+	// Clamp scroll to valid range
+	if scroll < 0 {
+		scroll = 0
+	}
+	if scroll > len(runes) {
+		scroll = len(runes)
+	}
 
 	if !inp.focused.Get() {
 		if len(runes) == 0 {
 			return " "
 		}
 		// Show viewport slice
-		end := min(scroll+visible, len(runes))
+		end := scroll + visible
+		if end > len(runes) {
+			end = len(runes)
+		}
 		return string(runes[scroll:end])
 	}
 
@@ -408,7 +415,10 @@ func (inp *Input) displayText() string {
 	}
 
 	// visible+1 because the cursor character takes a column
-	viewEnd := min(viewStart+visible+1, len(withCursor))
+	viewEnd := viewStart + visible + 1
+	if viewEnd > len(withCursor) {
+		viewEnd = len(withCursor)
+	}
 
 	return string(withCursor[viewStart:viewEnd])
 }

@@ -108,7 +108,7 @@ func (c *completionProvider) getAttributeCompletions(tag string) []CompletionIte
 
 	var items []CompletionItem
 	for _, attr := range elem.Attributes {
-		var insertText string
+		insertText := attr.Name + "="
 		if attr.Type == "bool" {
 			insertText = attr.Name
 		} else if attr.Type == "string" {

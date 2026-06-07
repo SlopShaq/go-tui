@@ -37,16 +37,6 @@ func (e *Element) SetBorderStyle(style Style) {
 	e.borderStyle = style
 }
 
-// BorderTitle returns the title string drawn in the top border, or "" if none.
-func (e *Element) BorderTitle() string {
-	return e.borderTitle
-}
-
-// SetBorderTitle sets the title string drawn in the top border.
-func (e *Element) SetBorderTitle(title string) {
-	e.borderTitle = title
-}
-
 // Background returns the background style, or nil if transparent.
 func (e *Element) Background() *Style {
 	return e.background
@@ -69,7 +59,6 @@ func (e *Element) Text() string {
 // which correctly accounts for text dimensions, padding, and border.
 func (e *Element) SetText(content string) {
 	e.text = content
-	e.richText = nil
 	e.MarkDirty()
 }
 

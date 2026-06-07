@@ -267,3 +267,4 @@ func isTextToken(typ TokenType) bool {
 		return false
 	}
 }
+

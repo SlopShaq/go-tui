@@ -124,6 +124,7 @@ func renderElement(buf *Buffer, e *Element, inherited inheritedStyle) {
 		}
 	}
 
+	// 2. Draw border (border style does NOT inherit)
 	if e.border != BorderNone {
 		if e.borderGradient != nil {
 			DrawBoxGradient(buf, rect, e.border, *e.borderGradient, e.borderStyle)
@@ -136,7 +137,7 @@ func renderElement(buf *Buffer, e *Element, inherited inheritedStyle) {
 	}
 
 	// 3. Draw text content if present
-	if e.text != "" || len(e.richText) > 0 {
+	if e.text != "" {
 		renderTextContent(buf, e, rc.textStyle, rc.bg)
 	}
 
@@ -245,34 +246,6 @@ func renderClippedElement(buf *Buffer, e *Element, clipRect Rect, scrollX, scrol
 		if e.borderTitle != "" {
 			drawBoxTitleClipped(buf, screenRect, e.borderTitle, e.borderStyle, clipRect)
 		}
-	}
-
-	// Render rich text with clipping (parallel to the plain-text block below).
-	// An element has either plain text or rich text, never both.
-	if len(e.richText) > 0 {
-		textBaseX := screenX + e.style.Padding.Left
-		textBaseY := screenY + e.style.Padding.Top
-		if e.border != BorderNone {
-			textBaseX += 1
-			textBaseY += 1
-		}
-		availTextWidth := childRect.Width - e.style.Padding.Horizontal()
-		if e.border != BorderNone {
-			availTextWidth -= 2
-		}
-
-		ts := rc.textStyle
-		if rc.bg != nil && !rc.bg.Bg.IsDefault() {
-			ts.Bg = rc.bg.Bg
-		}
-
-		var spanLines [][]TextSpan
-		if !e.noWrap && availTextWidth > 0 {
-			spanLines = wrapSpans(e.richText, availTextWidth)
-		} else {
-			spanLines = [][]TextSpan{e.richText}
-		}
-		drawSpanLines(buf, spanLines, textBaseX, textBaseY, availTextWidth, e.textAlign, ts, clipRect)
 	}
 
 	// Render text with clipping
@@ -418,7 +391,7 @@ func renderVerticalScrollbar(buf *Buffer, e *Element) {
 	thumbTop := e.scrollY * (trackHeight - thumbHeight) / maxScroll
 
 	// Draw track and thumb
-	for y := range trackHeight {
+	for y := 0; y < trackHeight; y++ {
 		screenY := trackTop + y
 		if y >= thumbTop && y < thumbTop+thumbHeight {
 			buf.SetRune(trackX, screenY, '█', e.scrollbarThumbStyle)
@@ -470,25 +443,6 @@ func renderTextContent(buf *Buffer, e *Element, textStyle Style, bg *Style) {
 		return
 	}
 
-	// Rich text takes its own path (parallel to the plain-text logic below).
-	// Note: e.truncate and per-element vertical auto-scroll are not yet applied
-	// to rich text (unlike the plain-text path); rich text relies on a
-	// container's clipping/scrolling instead.
-	if len(e.richText) > 0 {
-		ts := textStyle
-		if bg != nil && !bg.Bg.IsDefault() {
-			ts.Bg = bg.Bg
-		}
-		var spanLines [][]TextSpan
-		if !e.noWrap && contentRect.Width > 0 {
-			spanLines = wrapSpans(e.richText, contentRect.Width)
-		} else {
-			spanLines = [][]TextSpan{e.richText}
-		}
-		drawSpanLines(buf, spanLines, contentRect.X, contentRect.Y, contentRect.Width, e.textAlign, ts, contentRect)
-		return
-	}
-
 	// Compute wrapped lines
 	var lines []string
 	if !e.noWrap && contentRect.Width > 0 {
@@ -525,7 +479,13 @@ func renderTextContent(buf *Buffer, e *Element, textStyle Style, bg *Style) {
 	startLine := 0
 	if len(lines) > contentRect.Height && contentRect.Height > 0 {
 		e.contentHeight = len(lines) // store for scroll bounds
-		startLine = max(min(e.scrollY, len(lines)-contentRect.Height), 0)
+		startLine = e.scrollY
+		if startLine > len(lines)-contentRect.Height {
+			startLine = len(lines) - contentRect.Height
+		}
+		if startLine < 0 {
+			startLine = 0
+		}
 		maxLines = contentRect.Height
 	}
 
@@ -565,8 +525,9 @@ func renderTextContent(buf *Buffer, e *Element, textStyle Style, bg *Style) {
 		}
 
 		if needPerCell {
+			runes := []rune(line)
 			curX := x
-			for _, r := range line {
+			for _, r := range runes {
 				if curX >= contentRect.Right() {
 					break
 				}
@@ -594,55 +555,6 @@ func renderTextContent(buf *Buffer, e *Element, textStyle Style, bg *Style) {
 			}
 		} else {
 			buf.SetStringClipped(x, y, line, ts, contentRect)
-		}
-	}
-}
-
-// drawSpanLines renders pre-wrapped rich-text lines into the buffer.
-// originX/originY is the top-left content cell, contentWidth is the line box used
-// for alignment, base is the element's resolved text style (with background
-// already merged), and clip bounds the drawable region. Cells outside clip are
-// skipped but still advance x (so horizontal scroll offsets line up).
-func drawSpanLines(buf *Buffer, lines [][]TextSpan, originX, originY, contentWidth int, align TextAlign, base Style, clip Rect) {
-nextLine:
-	for li, line := range lines {
-		y := originY + li
-		if y < clip.Y || y >= clip.Bottom() {
-			continue
-		}
-		x := originX
-		if lw := spanLineWidth(line); contentWidth > lw {
-			switch align {
-			case TextAlignCenter:
-				x += (contentWidth - lw) / 2
-			case TextAlignRight:
-				x += contentWidth - lw
-			}
-		}
-		for _, span := range line {
-			st := mergeSpanStyle(base, span.Style)
-			for _, r := range span.Text {
-				// Reached the right clip edge: clip this line and move to the
-				// next one (matching the plain-text paths' per-line break),
-				// rather than abandoning all remaining lines.
-				if x >= clip.Right() {
-					continue nextLine
-				}
-				w := RuneWidth(r)
-				if w == 2 && x+1 >= clip.Right() {
-					continue nextLine
-				}
-				if x >= clip.X {
-					style := st
-					if style.Bg.IsDefault() {
-						if cellBg := buf.Cell(x, y).Style.Bg; !cellBg.IsDefault() {
-							style.Bg = cellBg
-						}
-					}
-					buf.SetRuneLink(x, y, r, style, span.Link)
-				}
-				x += w
-			}
 		}
 	}
 }

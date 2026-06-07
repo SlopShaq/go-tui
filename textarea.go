@@ -10,20 +10,21 @@ import (
 // It implements Component, KeyListener, WatcherProvider, and Focusable interfaces.
 type TextArea struct {
 	// Configuration (set via options, immutable after construction)
-	width             int
-	maxHeight         int
-	border            BorderStyle
-	textStyle         Style
-	placeholder       string
-	placeholderStyle  Style
-	cursorRune        rune
+	width            int
+	maxHeight        int
+	border           BorderStyle
+	textStyle        Style
+	placeholder      string
+	placeholderStyle Style
+	cursorRune       rune
 	hideVirtualCursor bool
-	focusColor        *Color
-	borderGradient    *Gradient
-	focusGradient     *Gradient
-	autoFocus         bool
-	submitKey         Key
-	onSubmit          func(string)
+	tempScrollOffset int // set by Render, read by lineWithCursor
+	focusColor       *Color
+	borderGradient   *Gradient
+	focusGradient    *Gradient
+	autoFocus        bool
+	submitKey        Key
+	onSubmit         func(string)
 
 	// Reactive state
 	text      *State[string]
@@ -96,7 +97,10 @@ func (t *TextArea) Clear() {
 // Height returns the total rendered height including border.
 func (t *TextArea) Height() int {
 	lines := t.wrapText()
-	height := max(len(lines), 1)
+	height := len(lines)
+	if height < 1 {
+		height = 1
+	}
 	if t.maxHeight > 0 && height > t.maxHeight {
 		height = t.maxHeight
 	}
@@ -110,10 +114,25 @@ func (t *TextArea) Height() int {
 
 // Render returns the element tree for the text area.
 func (t *TextArea) Render(app *App) *Element {
+	if t.width <= 0 {
+		t.width = app.Buffer().Width() - 4
+	}
 	lines := t.wrapText()
-	height := max(len(lines), 1)
+	height := len(lines)
+	if height < 1 {
+		height = 1
+	}
 	if t.maxHeight > 0 && height > t.maxHeight {
 		height = t.maxHeight
+		cursorRow, _ := t.cursorRowCol(lines)
+		if cursorRow >= t.maxHeight {
+			scrollY := cursorRow - t.maxHeight + 1
+			lines = lines[scrollY:]
+			t.tempScrollOffset = scrollY
+		} else {
+			lines = lines[:height]
+			t.tempScrollOffset = 0
+		}
 	}
 
 	// Account for border
@@ -158,7 +177,7 @@ func (t *TextArea) Render(app *App) *Element {
 		root.AddChild(New(WithText(t.placeholder), WithTextStyle(t.placeholderStyle)))
 	} else {
 		for i := range lines {
-			root.AddChild(New(WithText(t.lineWithCursor(i)), WithTextStyle(t.textStyle), WithWrap(false)))
+			root.AddChild(New(WithText(t.lineWithCursor(i)), WithTextStyle(t.textStyle)))
 		}
 	}
 
@@ -394,9 +413,9 @@ func (t *TextArea) wrapText() []string {
 	var lines []string
 
 	// Split on embedded newlines first
-	paragraphs := strings.SplitSeq(text, "\n")
+	paragraphs := strings.Split(text, "\n")
 
-	for para := range paragraphs {
+	for _, para := range paragraphs {
 		if para == "" {
 			lines = append(lines, "")
 			continue
@@ -405,7 +424,7 @@ func (t *TextArea) wrapText() []string {
 		// Wrap this paragraph to width
 		currentLine := make([]rune, 0)
 		for _, r := range para {
-			if t.width > 0 && len(currentLine) >= t.width {
+			if len(currentLine) >= t.width {
 				lines = append(lines, string(currentLine))
 				currentLine = currentLine[:0]
 			}
@@ -454,7 +473,7 @@ func (t *TextArea) posFromRowCol(lines []string, targetRow, targetCol int) int {
 	currentCol := 0
 	lineIdx := 0
 
-	for i := range textRunes {
+	for i := 0; i < len(textRunes); i++ {
 		if currentRow == targetRow && currentCol == targetCol {
 			return i
 		}
@@ -489,11 +508,15 @@ func (t *TextArea) lineWithCursor(lineIdx int) string {
 		return " "
 	}
 
+	lines = lines[t.tempScrollOffset:]
+	if lineIdx >= len(lines) {
+		return " "
+	}
 	row, col := t.cursorRowCol(lines)
+	row -= t.tempScrollOffset
 	line := lines[lineIdx]
 
 	if lineIdx == row && t.focused.Get() {
-		// Skip virtual cursor when hardware cursor mode is enabled
 		if t.hideVirtualCursor {
 			if line == "" {
 				return " "

@@ -10,11 +10,10 @@ import (
 // Returns conservative defaults when detection fails.
 func DetectCapabilities() Capabilities {
 	caps := Capabilities{
-		Colors:     Color16, // Safe default for most terminals
-		Unicode:    true,    // Assume modern terminal
-		TrueColor:  false,
-		AltScreen:  true,
-		Hyperlinks: true, // Most modern terminals support OSC 8; disabled for dumb below
+		Colors:    Color16,  // Safe default for most terminals
+		Unicode:   true,     // Assume modern terminal
+		TrueColor: false,
+		AltScreen: true,
 	}
 
 	// First, check for explicit true color indicators that override everything else.
@@ -60,25 +59,19 @@ func DetectCapabilities() Capabilities {
 		caps.TrueColor = true
 	}
 
-	// Dumb terminals cannot handle escape sequences (including OSC 8 hyperlinks)
-	// regardless of any color indicator, so check TERM=dumb before the TrueColor
-	// early-return below.
-	term := strings.ToLower(os.Getenv("TERM"))
-	if term == "dumb" {
-		caps.Colors = ColorNone
-		caps.Unicode = false
-		caps.AltScreen = false
-		caps.Hyperlinks = false
-		return caps
-	}
-
 	// If we already detected true color via explicit indicators, we're done
 	if caps.TrueColor {
 		return caps
 	}
 
-	// Now check TERM for terminals without explicit indicators
+	// Now check TERM environment variable for terminals without explicit indicators
+	term := strings.ToLower(os.Getenv("TERM"))
 	switch {
+	case term == "dumb":
+		caps.Colors = ColorNone
+		caps.Unicode = false
+		caps.AltScreen = false
+		return caps // Early return for truly dumb terminal
 	case strings.Contains(term, "256color"):
 		caps.Colors = Color256
 	case strings.Contains(term, "truecolor"):
@@ -162,10 +155,6 @@ func (c Capabilities) String() string {
 
 	if c.KittyKeyboard {
 		parts = append(parts, "kitty-keyboard")
-	}
-
-	if c.Hyperlinks {
-		parts = append(parts, "hyperlinks")
 	}
 
 	return strings.Join(parts, ", ")

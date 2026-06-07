@@ -222,7 +222,7 @@ func resolveInNodeInner(ctx *CursorContext, node tuigen.Node, line, col int) boo
 				}
 			}
 			ctx.Node = n
-			ctx.NodeKind = classifyGoCode(n)
+			ctx.NodeKind = classifyGoCode(ctx, n)
 			return true
 		}
 	case *tuigen.TextContent:
@@ -415,7 +415,7 @@ func classifyGoExpr(expr *tuigen.GoExpr) NodeKind {
 
 // classifyGoCode determines the NodeKind for a GoCode node.
 // Detects state declarations (tui.NewState).
-func classifyGoCode(code *tuigen.GoCode) NodeKind {
+func classifyGoCode(ctx *CursorContext, code *tuigen.GoCode) NodeKind {
 	if code == nil {
 		return NodeKindGoExpr
 	}
@@ -644,7 +644,10 @@ func isOffsetInClassAttr(content string, offset int) bool {
 	}
 
 	// Search backwards for class="
-	searchStart := max(offset-maxClassAttrSearchDistance, 0)
+	searchStart := offset - maxClassAttrSearchDistance
+	if searchStart < 0 {
+		searchStart = 0
+	}
 
 	segment := content[searchStart:offset]
 	classIdx := strings.LastIndex(segment, `class="`)
@@ -665,10 +668,9 @@ func findComponentEndLine(content string, comp *tuigen.Component) int {
 	depth := 0
 	for i := startLine; i < len(lines); i++ {
 		for _, ch := range lines[i] {
-			switch ch {
-			case '{':
+			if ch == '{' {
 				depth++
-			case '}':
+			} else if ch == '}' {
 				depth--
 				if depth == 0 {
 					return i
@@ -688,7 +690,10 @@ func isOffsetInElementTag(content string, offset int) bool {
 
 	// Search backwards for < or >, allowing newlines (multi-line tags).
 	// Limit search to avoid scanning the entire file for very large documents.
-	minOffset := max(offset-500, 0)
+	minOffset := offset - 500
+	if minOffset < 0 {
+		minOffset = 0
+	}
 	for i := offset - 1; i >= minOffset; i-- {
 		switch content[i] {
 		case '<':

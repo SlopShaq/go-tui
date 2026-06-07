@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	"syscall"
 )
 
 // ErrAlreadyOpen is returned by Open when the app has already been opened.
@@ -34,7 +35,7 @@ func (a *App) Open() (retErr error) {
 
 	// Handle Ctrl+C gracefully
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		select {
 		case <-sigCh:

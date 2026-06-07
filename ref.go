@@ -1,7 +1,5 @@
 package tui
 
-import "maps"
-
 import "sync"
 
 // Ref is a reference to an Element, set during construction
@@ -131,7 +129,9 @@ func (r *RefMap[K]) All() map[K]*Element {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	out := make(map[K]*Element, len(r.elems))
-	maps.Copy(out, r.elems)
+	for k, v := range r.elems {
+		out[k] = v
+	}
 	return out
 }
 

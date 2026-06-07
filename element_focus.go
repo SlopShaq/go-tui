@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"github.com/grindlemire/go-tui/internal/debug"
+	"github.com/SlopShaq/go-tui/internal/debug"
 )
 
 // --- Focus API ---

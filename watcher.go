@@ -3,7 +3,7 @@ package tui
 import (
 	"time"
 
-	"github.com/grindlemire/go-tui/internal/debug"
+	"github.com/SlopShaq/go-tui/internal/debug"
 )
 
 // Watcher represents a deferred event source that starts when the app runs.

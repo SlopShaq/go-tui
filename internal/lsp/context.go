@@ -1,7 +1,7 @@
 package lsp
 
 import (
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // NodeKind classifies what language construct the cursor is on.

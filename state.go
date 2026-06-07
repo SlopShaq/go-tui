@@ -31,7 +31,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/grindlemire/go-tui/internal/debug"
+	"github.com/SlopShaq/go-tui/internal/debug"
 )
 
 // batchContext tracks batch state for deferring binding execution.

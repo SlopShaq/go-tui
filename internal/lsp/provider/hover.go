@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grindlemire/go-tui/internal/lsp/gopls"
-	"github.com/grindlemire/go-tui/internal/lsp/log"
-	"github.com/grindlemire/go-tui/internal/lsp/schema"
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/lsp/gopls"
+	"github.com/SlopShaq/go-tui/internal/lsp/log"
+	"github.com/SlopShaq/go-tui/internal/lsp/schema"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // hoverProvider implements HoverProvider.

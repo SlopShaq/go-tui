@@ -3,7 +3,7 @@ package tui
 import (
 	"fmt"
 
-	"github.com/grindlemire/go-tui/internal/debug"
+	"github.com/SlopShaq/go-tui/internal/debug"
 )
 
 // focusQuerier is implemented by components that can report their own focus state.

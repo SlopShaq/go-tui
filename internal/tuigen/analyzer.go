@@ -555,7 +555,7 @@ func (a *Analyzer) addMissingImports() {
 	hasTUI := false
 
 	for _, imp := range a.file.Imports {
-		if imp.Path == "github.com/grindlemire/go-tui" {
+		if imp.Path == "github.com/SlopShaq/go-tui" {
 			hasTUI = true
 		}
 	}
@@ -564,7 +564,7 @@ func (a *Analyzer) addMissingImports() {
 	if (a.usesElement || a.usesLayout || a.usesTUI) && !hasTUI {
 		a.file.Imports = append(a.file.Imports, Import{
 			Alias: "tui",
-			Path:  "github.com/grindlemire/go-tui",
+			Path:  "github.com/SlopShaq/go-tui",
 		})
 	}
 }

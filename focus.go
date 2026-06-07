@@ -1,6 +1,6 @@
 package tui
 
-import "github.com/grindlemire/go-tui/internal/debug"
+import "github.com/SlopShaq/go-tui/internal/debug"
 
 // Focusable is implemented by elements that can receive keyboard focus.
 // Element implements this interface directly. For custom focus handling,

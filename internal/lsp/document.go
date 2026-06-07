@@ -3,8 +3,8 @@ package lsp
 import (
 	"sync"
 
-	"github.com/grindlemire/go-tui/internal/lsp/provider"
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/lsp/provider"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // Document represents an open .gsx file with its parsed state.

@@ -4,7 +4,7 @@ import (
 	"go/format"
 	"strings"
 
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // printForLoop outputs a for loop.

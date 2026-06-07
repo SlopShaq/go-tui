@@ -3,7 +3,7 @@ package provider
 import (
 	"strings"
 
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // --- Workspace search ---

@@ -8,8 +8,8 @@
 package provider
 
 import (
-	"github.com/grindlemire/go-tui/internal/lsp/gopls"
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/lsp/gopls"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // --- Type aliases for parent-package types ---

@@ -1,9 +1,9 @@
 package lsp
 
 import (
-	"github.com/grindlemire/go-tui/internal/lsp/gopls"
-	"github.com/grindlemire/go-tui/internal/lsp/provider"
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/lsp/gopls"
+	"github.com/SlopShaq/go-tui/internal/lsp/provider"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // --- Adapters that implement provider.* interfaces using lsp.Server internals ---

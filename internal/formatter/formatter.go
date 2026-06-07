@@ -2,7 +2,7 @@
 package formatter
 
 import (
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // Formatter formats .gsx source code.

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/grindlemire/go-tui/internal/lsp/log"
+	"github.com/SlopShaq/go-tui/internal/lsp/log"
 )
 
 // SourceMap tracks position mappings between .gsx and generated .go files.

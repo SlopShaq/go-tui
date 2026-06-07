@@ -1,6 +1,6 @@
 package tui
 
-import "github.com/grindlemire/go-tui/internal/debug"
+import "github.com/SlopShaq/go-tui/internal/debug"
 
 // inheritedStyle carries cascading visual properties down the element tree.
 // Text style (Fg, Attrs) and background color cascade from parent to child.

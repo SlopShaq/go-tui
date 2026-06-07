@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/grindlemire/go-tui/internal/tuigen"
+	"github.com/SlopShaq/go-tui/internal/tuigen"
 )
 
 // printer generates formatted .gsx source code from an AST.

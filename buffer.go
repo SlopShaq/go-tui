@@ -184,11 +184,11 @@ func (b *Buffer) SetString(x, y int, s string, style Style) int {
 		}
 		if curX < 0 {
 			// Skip characters before the visible area
-			curX += RuneWidth(r)
+			curX += visualWidth(r)
 			continue
 		}
 
-		width := RuneWidth(r)
+		width := visualWidth(r)
 
 		// Check if wide char fits
 		if width == 2 && curX+1 >= b.width {
@@ -256,7 +256,7 @@ func (b *Buffer) Fill(rect Rect, r rune, style Style) {
 		return
 	}
 
-	width := RuneWidth(r)
+	width := visualWidth(r)
 
 	for y := rect.Y; y < rect.Bottom(); y++ {
 		for x := rect.X; x < rect.Right(); {
@@ -294,11 +294,11 @@ func (b *Buffer) SetStringGradient(x, y int, s string, g Gradient, baseStyle Sty
 		}
 		if curX < 0 {
 			// Skip characters before the visible area
-			curX += RuneWidth(r)
+			curX += visualWidth(r)
 			continue
 		}
 
-		width := RuneWidth(r)
+		width := visualWidth(r)
 
 		// Check if wide char fits
 		if width == 2 && curX+1 >= b.width {
@@ -338,7 +338,7 @@ func (b *Buffer) FillGradient(rect Rect, r rune, g Gradient, baseStyle Style) {
 		return
 	}
 
-	width := RuneWidth(r)
+	width := visualWidth(r)
 	rectWidth := float64(rect.Width)
 	rectHeight := float64(rect.Height)
 

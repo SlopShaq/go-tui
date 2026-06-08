@@ -534,7 +534,7 @@ func renderTextContent(buf *Buffer, e *Element, textStyle Style, bg *Style) {
 				if curX >= contentRect.Right() {
 					break
 				}
-				width := RuneWidth(r)
+				width := visualWidth(r)
 				if width == 2 && curX+1 >= contentRect.Right() {
 					break
 				}

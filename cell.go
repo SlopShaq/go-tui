@@ -110,28 +110,31 @@ var eastAsianWideRanges = []runeRange{
 
 // Emoji ranges that terminals commonly render as 2-cell glyphs.
 var emojiWideRanges = []runeRange{
-	// BMP dingbats commonly rendered as 2-cell emoji
-	{min: 0x231A, max: 0x231B},   // ⌚⌛ watch/hourglass
-	{min: 0x2328, max: 0x2328},   // ⌨ keyboard
-	{min: 0x23CF, max: 0x23CF},   // ⏏ eject
-	{min: 0x23E9, max: 0x23F3},   // ⏩⏪⏫⏬⏭⏮⏯⏰⏱⏲⏳
-	{min: 0x23F8, max: 0x23FA},   // ⏸⏹⏺ media buttons
+	// Scattered BMP emoji (Emoji_Presentation=Yes in Unicode)
+	{min: 0x00A9, max: 0x00A9},   // © copyright
+	{min: 0x00AE, max: 0x00AE},   // ® registered
+	{min: 0x203C, max: 0x203C},   // ‼ double exclamation
+	{min: 0x2049, max: 0x2049},   // ⁉ exclamation question
+	{min: 0x2122, max: 0x2122},   // ™ trade mark
+	{min: 0x2139, max: 0x2139},   // ℹ information
+	{min: 0x2194, max: 0x2199},   // ↔↕↖↗↘↙ arrows
+	{min: 0x21A9, max: 0x21AA},   // ↩↪ curved arrows
+	// Specific BMP dingbats (covered individually before the catch-all below)
+	{min: 0x231A, max: 0x2328},   // ⌚⌛⌨ watch/keyboard/etc
+	{min: 0x23CF, max: 0x23FA},   // ⏏⏩-⏳⏸-⏺ media controls
 	{min: 0x24C2, max: 0x24C2},   // Ⓜ circled M
-	{min: 0x25AA, max: 0x25AB},   // ▪▫ white/black small squares
-	{min: 0x25B6, max: 0x25B6},   // ▶ play
-	{min: 0x25C0, max: 0x25C0},   // ◀ reverse
-	{min: 0x25FB, max: 0x25FE},   // ◻◼◽◾ squares
-	{min: 0x2600, max: 0x27BF},   // ☀-➿ — Misc symbols + dingbats (☕✨❤✅❌⭐ etc.)
+	{min: 0x25AA, max: 0x25FE},   // ▪▫▶◀◻◼◽◾ geometric shapes
+	// Catch-all: Misc Symbols + Dingbats (☀-➿ — covers zodiac, hearts, stars, etc.)
+	{min: 0x2600, max: 0x27BF},
 	{min: 0x2934, max: 0x2935},   // ⤴⤵ arrows
-	{min: 0x2B05, max: 0x2B07},   // ⬅⬆⬇ arrows
-	{min: 0x2B1B, max: 0x2B1C},   // ⬛⬜ squares
-	{min: 0x2B50, max: 0x2B50},   // ⭐ star
-	{min: 0x2B55, max: 0x2B55},   // ⭕ ring
+	{min: 0x2B00, max: 0x2B55},   // ⬀-⭕ — arrows, stars, ring
 	{min: 0x3030, max: 0x3030},   // 〰 wavy dash
 	{min: 0x303D, max: 0x303D},   // 〽 part alternation
 	{min: 0x3297, max: 0x3297},   // ㊗ congratulation
 	{min: 0x3299, max: 0x3299},   // ㊙ secret
-	// Original ranges
+	// Supplemental Arrows
+	{min: 0x27A1, max: 0x27A1},   // ➡ right arrow (covered by 0x2600-0x27BF but listed for clarity)
+	// Original emoji ranges
 	{min: 0x1F004, max: 0x1F004},
 	{min: 0x1F0CF, max: 0x1F0CF},
 	{min: 0x1F18E, max: 0x1F18E},

@@ -2,6 +2,11 @@ package tui
 
 import "strings"
 
+
+// WrapText is a public wrapper around wrapText for use by external packages.
+func WrapText(text string, maxWidth int) []string {
+	return wrapText(text, maxWidth)
+}
 // wrapText wraps text to fit within maxWidth terminal cells using word boundaries.
 // It breaks at spaces, falling back to mid-character breaks when a single word
 // exceeds maxWidth. Existing newlines in the text are preserved.

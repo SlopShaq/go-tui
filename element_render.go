@@ -320,10 +320,10 @@ func renderClippedElement(buf *Buffer, e *Element, clipRect Rect, scrollX, scrol
 							break
 						}
 						if curX < clipRect.X {
-							curX += RuneWidth(r)
+							curX += visualWidth(r)
 							continue
 						}
-						width := RuneWidth(r)
+						width := visualWidth(r)
 						if width == 2 && curX+1 >= clipRect.Right() {
 							break
 						}

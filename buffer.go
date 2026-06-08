@@ -216,7 +216,7 @@ func (b *Buffer) SetStringClipped(x, y int, s string, style Style, clipRect Rect
 	curX := x
 
 	for _, r := range s {
-		width := RuneWidth(r)
+		width := visualWidth(r)
 
 		// Skip if entirely before clip region
 		if curX+width <= clipRect.X {

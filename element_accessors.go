@@ -156,11 +156,12 @@ func (e *Element) Component() Component {
 	return e.component
 }
 
-// stringWidth returns the display width of a string in terminal cells.
+// stringWidth returns the display width of a string in terminal cells,
+// correctly ignoring zero-width characters (variation selectors, ZWJ, combining marks).
 func stringWidth(s string) int {
 	width := 0
 	for _, r := range s {
-		width += RuneWidth(r)
+		width += visualWidth(r)
 	}
 	return width
 }

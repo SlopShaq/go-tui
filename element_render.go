@@ -175,7 +175,10 @@ func renderScrollableChildren(buf *Buffer, e *Element, childInherited inheritedS
 		clipRect.Width = max(0, clipRect.Width-1)
 	}
 
-	// Render each child with scroll offset and clipping
+	// Clear viewport before rendering to prevent ghost characters from emoji movement.
+	buf.ClearRect(clipRect)
+
+	// Render each child with scroll offset and clipping.
 	for _, child := range e.children {
 		renderClippedElement(buf, child, clipRect, e.scrollX, e.scrollY, clipRect.X, clipRect.Y, childInherited)
 	}

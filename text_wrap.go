@@ -1,12 +1,28 @@
 package tui
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
-
-// WrapText is a public wrapper around wrapText for use by external packages.
-func WrapText(text string, maxWidth int) []string {
-	return wrapText(text, maxWidth)
+// visualWidth returns the visual cell width of a rune, returning 0 for
+// zero-width characters (variation selectors, combining marks, ZWJ, etc.).
+func visualWidth(r rune) int {
+	if r == 0xFE0E || r == 0xFE0F || r == 0x200D || unicode.In(r, unicode.Mn, unicode.Me, unicode.Cf) {
+		return 0
+	}
+	return RuneWidth(r)
 }
+
+// visualStringWidth returns the total visual cell width of a string.
+func visualStringWidth(s string) int {
+	w := 0
+	for _, r := range s {
+		w += visualWidth(r)
+	}
+	return w
+}
+
 // wrapText wraps text to fit within maxWidth terminal cells using word boundaries.
 // It breaks at spaces, falling back to mid-character breaks when a single word
 // exceeds maxWidth. Existing newlines in the text are preserved.
@@ -23,6 +39,11 @@ func wrapText(text string, maxWidth int) []string {
 		result = append(result, wrapParagraph(paragraph, maxWidth)...)
 	}
 	return result
+}
+
+// WrapText is a public wrapper around wrapText for use by external packages.
+func WrapText(text string, maxWidth int) []string {
+	return wrapText(text, maxWidth)
 }
 
 // wrapParagraph wraps a single paragraph (no newlines) to maxWidth.
@@ -62,7 +83,7 @@ func wrapParagraph(text string, maxWidth int) []string {
 				i++
 			}
 			word := text[wordStart:i]
-			ww := stringWidth(word)
+			ww := visualStringWidth(word)
 
 			if ww > maxWidth && lineWidth > 0 {
 				lines = append(lines, buf.String())
@@ -72,7 +93,7 @@ func wrapParagraph(text string, maxWidth int) []string {
 			}
 			if ww > maxWidth {
 				for _, r := range word {
-					rw := RuneWidth(r)
+					rw := visualWidth(r)
 					if lineWidth+rw > maxWidth && lineWidth > 0 {
 						lines = append(lines, buf.String())
 						buf.Reset()

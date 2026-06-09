@@ -417,8 +417,15 @@ func drawBoxTitleClipped(buf *Buffer, rect Rect, title string, style Style, clip
 // prepareTitle truncates a title for the given rectangle.
 // align controls placement: AlignLeft starts at rect.X+2,
 // AlignCenter centers, AlignRight ends at rect.Right()-2.
+// For left/right alignment, availableWidth is reduced by 1 to reserve
+// a dash before the corner (prevents title from overwriting ╮/╯).
 func prepareTitle(title string, rect Rect, align TextAlign) (runes []rune, startX int, ok bool) {
 	availableWidth := rect.Width - 2
+	// Left/right alignment can push title to the edge; reserve 1 cell
+	// for a dash before the corner character.
+	if align == TextAlignLeft || align == TextAlignRight {
+		availableWidth--
+	}
 	if availableWidth <= 0 {
 		return nil, 0, false
 	}
@@ -439,6 +446,7 @@ func prepareTitle(title string, rect Rect, align TextAlign) (runes []rune, start
 	if len(truncatedRunes) == 0 {
 		return nil, 0, false
 	}
+
 	switch align {
 	case TextAlignLeft:
 		startX = rect.X + 2

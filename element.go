@@ -61,7 +61,8 @@ type Element struct {
 	borderStyle Style
 	background  *Style // nil = transparent
 	borderTitle string   // title text in top border (DrawBoxWithTitle)
-	borderTitleAlign TextAlign // AlignLeft/AlignCenter/AlignRight for top border title
+	borderTitleAlign    TextAlign // alignment for top border title (default center)
+	borderTitleAlignSet bool      // true if explicitly set via WithBorderTitleAlign
 
 	// Text properties
 	text         string

@@ -195,10 +195,11 @@ func WithBorderTitle(title string) Option {
 }
 
 // WithBorderTitleAlign sets the alignment of the border title.
-// Default is TextAlignCenter. Pass TextAlignLeft or TextAlignRight for non-centered.
+// Default is centered. Pass TextAlignLeft or TextAlignRight for non-centered.
 func WithBorderTitleAlign(align TextAlign) Option {
 	return func(e *Element) {
 		e.borderTitleAlign = align
+		e.borderTitleAlignSet = true
 	}
 }
 

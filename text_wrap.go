@@ -61,6 +61,7 @@ func isDefaultEmojiPresentation(r rune) bool {
 		return true
 	case r == 0x2712: // ✒ black nib
 		return true
+	case r == 0x2714: // ✔ check mark
 		return true
 	case r == 0x2716: // ✖ multiplication
 		return true

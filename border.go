@@ -390,7 +390,7 @@ func drawBoxTitle(buf *Buffer, rect Rect, title string, style Style, align TextA
 	x := startX
 	for _, r := range runes {
 		buf.SetRune(x, rect.Y, r, style)
-		x += visualWidth(r)
+		x += RuneWidth(r)
 	}
 }
 
@@ -407,10 +407,10 @@ func drawBoxTitleClipped(buf *Buffer, rect Rect, title string, style Style, clip
 	}
 	x := startX
 	for _, r := range runes {
-		if x >= clipRect.X && x+visualWidth(r) <= clipRect.X+clipRect.Width {
+		if x >= clipRect.X && x+RuneWidth(r) <= clipRect.X+clipRect.Width {
 			buf.SetRune(x, rect.Y, r, style)
 		}
-		x += visualWidth(r)
+		x += RuneWidth(r)
 	}
 }
 
@@ -428,7 +428,7 @@ func prepareTitle(title string, rect Rect, align TextAlign) (runes []rune, start
 	truncatedRunes := make([]rune, 0, len(titleRunes))
 
 	for _, r := range titleRunes {
-		w := visualWidth(r)
+		w := RuneWidth(r)
 		if titleWidth+w > availableWidth {
 			break
 		}

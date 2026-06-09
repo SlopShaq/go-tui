@@ -379,12 +379,12 @@ func DrawBoxWithTitle(buf *Buffer, rect Rect, border BorderStyle, title string, 
 	DrawBox(buf, rect, border, style)
 
 	// Draw the title
-	drawBoxTitle(buf, rect, title, style)
+	drawBoxTitle(buf, rect, title, style, false)
 }
 
-// drawBoxTitle draws a centered title string on the top border line.
-func drawBoxTitle(buf *Buffer, rect Rect, title string, style Style) {
-	runes, startX, ok := prepareTitle(title, rect)
+// drawBoxTitle draws a title string on the top border line.
+func drawBoxTitle(buf *Buffer, rect Rect, title string, style Style, leftAlign bool) {
+	runes, startX, ok := prepareTitle(title, rect, leftAlign)
 	if !ok {
 		return
 	}
@@ -395,14 +395,14 @@ func drawBoxTitle(buf *Buffer, rect Rect, title string, style Style) {
 	}
 }
 
-// drawBoxTitleClipped draws a centered title string on the top border line,
+// drawBoxTitleClipped draws a title string on the top border line,
 // skipping any rune outside the given clip rectangle.
-func drawBoxTitleClipped(buf *Buffer, rect Rect, title string, style Style, clipRect Rect) {
+func drawBoxTitleClipped(buf *Buffer, rect Rect, title string, style Style, clipRect Rect, leftAlign bool) {
 	// Reject if the title row is outside the clip rect Y range.
 	if rect.Y < clipRect.Y || rect.Y >= clipRect.Y+clipRect.Height {
 		return
 	}
-	runes, startX, ok := prepareTitle(title, rect)
+	runes, startX, ok := prepareTitle(title, rect, leftAlign)
 	if !ok {
 		return
 	}
@@ -415,8 +415,10 @@ func drawBoxTitleClipped(buf *Buffer, rect Rect, title string, style Style, clip
 	}
 }
 
-// prepareTitle truncates and left-aligns a title for the given rectangle.
-func prepareTitle(title string, rect Rect) (runes []rune, startX int, ok bool) {
+// prepareTitle truncates a title for the given rectangle.
+// If leftAlign is true, the title is placed at position rect.X+2;
+// otherwise it's centered.
+func prepareTitle(title string, rect Rect, leftAlign bool) (runes []rune, startX int, ok bool) {
 	availableWidth := rect.Width - 2
 	if availableWidth <= 0 {
 		return nil, 0, false
@@ -439,7 +441,11 @@ func prepareTitle(title string, rect Rect) (runes []rune, startX int, ok bool) {
 		return nil, 0, false
 	}
 
-	startX = rect.X + 2
+	if leftAlign {
+		startX = rect.X + 2
+	} else {
+		startX = rect.X + 1 + (availableWidth-titleWidth)/2
+	}
 	return truncatedRunes, startX, true
 }
 

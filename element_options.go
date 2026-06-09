@@ -194,6 +194,13 @@ func WithBorderTitle(title string) Option {
 	}
 }
 
+// WithBorderTitleLeft left-aligns the border title instead of centering it.
+func WithBorderTitleLeft() Option {
+	return func(e *Element) {
+		e.borderTitleLeft = true
+	}
+}
+
 // WithBorderStyle sets the color/attributes for the border.
 func WithBorderStyle(style Style) Option {
 	return func(e *Element) {

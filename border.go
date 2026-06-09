@@ -415,7 +415,7 @@ func drawBoxTitleClipped(buf *Buffer, rect Rect, title string, style Style, clip
 	}
 }
 
-// prepareTitle truncates and centers a title for the given rectangle.
+// prepareTitle truncates and left-aligns a title for the given rectangle.
 func prepareTitle(title string, rect Rect) (runes []rune, startX int, ok bool) {
 	availableWidth := rect.Width - 2
 	if availableWidth <= 0 {
@@ -439,7 +439,7 @@ func prepareTitle(title string, rect Rect) (runes []rune, startX int, ok bool) {
 		return nil, 0, false
 	}
 
-	startX = rect.X + 1 + (availableWidth-titleWidth)/2
+	startX = rect.X + 2
 	return truncatedRunes, startX, true
 }
 

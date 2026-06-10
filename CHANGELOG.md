@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.16.0](https://github.com/grindlemire/go-tui/compare/v0.15.1...v0.16.0) (2026-06-07)
+
+
+### Features
+
+* add WithBorderTitle option for rendering titles in box borders ([da4c10b](https://github.com/grindlemire/go-tui/commit/da4c10b8953125cb8ca90c6688bea6104edc4aeb))
+* add WithBorderTitle option, drawBoxTitle helpers, GSX integration, tests ([31ba6dc](https://github.com/grindlemire/go-tui/commit/31ba6dc2c27ed69de4b18aeac9aaae1bac25ff6c))
+
+
+### Bug Fixes
+
+* **buffer:** keep wide-char continuation cells out of Diff tail erase ([7b77401](https://github.com/grindlemire/go-tui/commit/7b7740164d93b2b4970298fa9c0695274b869b2d))
+* **buffer:** keep wide-char continuation cells out of Diff tail erase ([e5360fb](https://github.com/grindlemire/go-tui/commit/e5360fbb867512d2729f09faa0aa13a00414a475)), closes [#79](https://github.com/grindlemire/go-tui/issues/79)
+
 ## [0.15.1](https://github.com/grindlemire/go-tui/compare/v0.15.0...v0.15.1) (2026-06-05)
 
 

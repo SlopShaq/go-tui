@@ -93,17 +93,25 @@ func (t *TextArea) Clear() {
 	t.cursorPos.Set(0)
 }
 
-// Height returns the total rendered height including border.
-func (t *TextArea) Height() int {
-	lines := t.wrapText()
+// contentRows returns the number of content rows to render: the wrapped
+// lines plus the phantom cursor row, clamped to maxHeight. Note that when
+// content exceeds maxHeight the rows below the clamp (including the cursor's
+// row) are clipped; the textarea has no scroll-to-cursor.
+func (t *TextArea) contentRows(lines []string) int {
 	rows := len(lines)
 	if t.phantomCursorRow(lines) {
 		rows++
 	}
-	height := max(rows, 1)
-	if t.maxHeight > 0 && height > t.maxHeight {
-		height = t.maxHeight
+	rows = max(rows, 1)
+	if t.maxHeight > 0 && rows > t.maxHeight {
+		rows = t.maxHeight
 	}
+	return rows
+}
+
+// Height returns the total rendered height including border.
+func (t *TextArea) Height() int {
+	height := t.contentRows(t.wrapText())
 	if t.border != BorderNone {
 		height += 2
 	}
@@ -115,17 +123,10 @@ func (t *TextArea) Height() int {
 // Render returns the element tree for the text area.
 func (t *TextArea) Render(app *App) *Element {
 	lines := t.wrapText()
-	rows := len(lines)
-	if t.phantomCursorRow(lines) {
-		rows++
-	}
-	height := max(rows, 1)
-	if t.maxHeight > 0 && height > t.maxHeight {
-		height = t.maxHeight
-	}
+	rows := t.contentRows(lines)
 
 	// Account for border
-	totalHeight := height
+	totalHeight := rows
 	if t.border != BorderNone {
 		totalHeight += 2
 	}
@@ -379,6 +380,11 @@ func (t *TextArea) moveHome(ke KeyEvent) {
 func (t *TextArea) moveEnd(ke KeyEvent) {
 	lines := t.wrapText()
 	row, _ := t.cursorRowCol(lines)
+	// The cursor can sit on the phantom row one past the last line; End there
+	// resolves against the last real line.
+	if row >= len(lines) {
+		row = len(lines) - 1
+	}
 	t.cursorPos.Set(t.posFromRowCol(lines, row, utf8.RuneCountInString(lines[row])))
 	t.blink.Set(true)
 }
@@ -576,6 +582,16 @@ func (t *TextArea) lineWithCursor(lineIdx int) string {
 		}
 		runes := []rune(line)
 		if col >= len(runes) {
+			// A display-full line ended by a hard newline keeps the cursor at
+			// its end (see cursorRowCol), where an appended cursor would be
+			// clipped. Overlay the last cell instead, like a block cursor
+			// sitting on the character.
+			if w := t.wrapWidth(); w > 0 && stringWidth(line) >= w && len(runes) > 0 {
+				if !t.blink.Get() {
+					return line
+				}
+				return string(runes[:len(runes)-1]) + string(t.cursorRune)
+			}
 			return line + cursor
 		}
 		withCursor := append(runes[:col], append([]rune{t.cursorRune}, runes[col:]...)...)

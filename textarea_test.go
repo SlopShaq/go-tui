@@ -273,31 +273,56 @@ func TestTextArea_CursorRowCol_WrapBoundaryAffinity(t *testing.T) {
 	}
 }
 
-func TestTextArea_MoveDown_SoftWrapColZero(t *testing.T) {
-	// posFromRowCol could not resolve (row, 0) targets on soft-wrapped lines,
-	// so moving down from column 0 jumped past the target line entirely.
-	ta := NewTextArea(WithTextAreaWidth(4))
-	ta.BindApp(testApp)
-	ta.SetText("abcdef")
-	ta.cursorPos.Set(0)
-
-	ta.moveDown(KeyEvent{Key: KeyDown})
-	if got := ta.cursorPos.Get(); got != 4 {
-		t.Fatalf("cursorPos after moveDown = %d, want 4", got)
+func TestTextArea_Move_WrapBoundary(t *testing.T) {
+	type tc struct {
+		text    string
+		width   int
+		pos     int
+		move    func(*TextArea)
+		wantPos int
 	}
-}
 
-func TestTextArea_MoveUp_FromWrapBoundary(t *testing.T) {
-	// The cursor at a full-line soft boundary displays on the next line, so
-	// moving up from there should land on the line above it.
-	ta := NewTextArea(WithTextAreaWidth(4))
-	ta.BindApp(testApp)
-	ta.SetText("abcdef")
-	ta.cursorPos.Set(4)
+	tests := map[string]tc{
+		// posFromRowCol could not resolve (row, 0) targets on soft-wrapped
+		// lines, so moving down from column 0 jumped past the target line.
+		"down from column zero crosses soft wrap": {
+			text: "abcdef", width: 4, pos: 0,
+			move:    func(ta *TextArea) { ta.moveDown(KeyEvent{Key: KeyDown}) },
+			wantPos: 4,
+		},
+		// The cursor at a full-line soft boundary displays on the next line,
+		// so moving up from there lands on the line above it.
+		"up from wrap boundary lands on previous line": {
+			text: "abcdef", width: 4, pos: 4,
+			move:    func(ta *TextArea) { ta.moveUp(KeyEvent{Key: KeyUp}) },
+			wantPos: 0,
+		},
+		// End with the cursor on the phantom row resolves against the last
+		// real line instead of indexing past the lines slice.
+		"end on phantom row stays at end of text": {
+			text: "abcd", width: 4, pos: 4,
+			move:    func(ta *TextArea) { ta.moveEnd(KeyEvent{Key: KeyEnd}) },
+			wantPos: 4,
+		},
+		"home on phantom row stays at boundary": {
+			text: "abcd", width: 4, pos: 4,
+			move:    func(ta *TextArea) { ta.moveHome(KeyEvent{Key: KeyHome}) },
+			wantPos: 4,
+		},
+	}
 
-	ta.moveUp(KeyEvent{Key: KeyUp})
-	if got := ta.cursorPos.Get(); got != 0 {
-		t.Fatalf("cursorPos after moveUp = %d, want 0", got)
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			ta := NewTextArea(WithTextAreaWidth(tt.width))
+			ta.BindApp(testApp)
+			ta.SetText(tt.text)
+			ta.cursorPos.Set(tt.pos)
+
+			tt.move(ta)
+			if got := ta.cursorPos.Get(); got != tt.wantPos {
+				t.Fatalf("cursorPos after move = %d, want %d", got, tt.wantPos)
+			}
+		})
 	}
 }
 
@@ -316,6 +341,9 @@ func TestTextArea_CursorVisibleAtWrapBoundary(t *testing.T) {
 		"end of text on non-full line":    {text: "abc", width: 4, pos: 3, wantHeight: 1},
 		"end of text after hard newline":  {text: "abcd\n", width: 4, pos: 5, wantHeight: 2},
 		"mid-line cursor away from edges": {text: "abcdef", width: 4, pos: 2, wantHeight: 2},
+		// The cursor overlays the last cell when a display-full line ends in
+		// a hard newline, since there is no continuation line to move it to.
+		"full line before hard newline": {text: "abcd\nef", width: 4, pos: 4, wantHeight: 2},
 	}
 
 	for name, tt := range tests {

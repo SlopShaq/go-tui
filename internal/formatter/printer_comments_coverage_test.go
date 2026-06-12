@@ -5,13 +5,8 @@ import (
 )
 
 // TestFormatOrphanCommentGroups exercises printOrphanComments with multiple
-// comment groups separated by blank lines.
-//
-// NOTE: this case is intentionally not checked for idempotency. The first
-// format pass emits a double blank line between the groups (both the
-// inter-group separator and the comment's own BlankLineBefore fire), which
-// collapses to a single blank line on the second pass. That is a real
-// idempotency bug in printOrphanComments/printCommentGroup.
+// comment groups separated by blank lines. Groups must stay separated by a
+// single blank line and the result must be idempotent.
 func TestFormatOrphanCommentGroups(t *testing.T) {
 	input := `package main
 
@@ -27,7 +22,6 @@ templ A() {
 templ A() {
 	// orphan one
 
-
 	// orphan two
 	<div></div>
 }
@@ -40,6 +34,14 @@ templ A() {
 	}
 	if got != want {
 		t.Errorf("Format() mismatch:\ngot:\n%s\nwant:\n%s", got, want)
+	}
+
+	again, err := fmtr.Format("test.gsx", got)
+	if err != nil {
+		t.Fatalf("Format() second pass error = %v", err)
+	}
+	if again != got {
+		t.Errorf("Format() not idempotent:\nfirst:\n%s\nsecond:\n%s", got, again)
 	}
 }
 

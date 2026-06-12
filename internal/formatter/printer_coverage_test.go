@@ -33,11 +33,24 @@ templ (c *card) Render() {
 }
 `,
 		},
-		// NOTE: leading comments on bare component expressions (e.g. a
-		// comment line directly above "@c.textarea") are dropped by the
-		// formatter today: the parser's comment-attachment switch has no
-		// *ComponentExpr case. That looks like a real bug, so it is not
-		// pinned by a test here.
+		"component expression with leading comment": {
+			input: `package main
+
+templ (c *card) Render() {
+// the text area
+@c.textarea
+<span>done</span>
+}
+`,
+			want: `package main
+
+templ (c *card) Render() {
+	// the text area
+	@c.textarea
+	<span>done</span>
+}
+`,
+		},
 		"go statement with leading comment": {
 			input: `package main
 

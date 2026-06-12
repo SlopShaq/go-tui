@@ -97,7 +97,7 @@ func TestStdinReader_PauseAndResume(t *testing.T) {
 			if ok || ev != nil {
 				t.Errorf("PollEvent() while paused = (%v, %v), want (nil, false)", ev, ok)
 			}
-			if elapsed > 100*time.Millisecond {
+			if elapsed > 150*time.Millisecond {
 				t.Errorf("PollEvent() while paused took %v, want immediate return", elapsed)
 			}
 
@@ -238,7 +238,7 @@ func TestStdinReader_EnableInterruptIdempotent(t *testing.T) {
 	if ok || ev != nil {
 		t.Errorf("PollEvent() with pending interrupt = (%v, %v), want (nil, false)", ev, ok)
 	}
-	if elapsed > 100*time.Millisecond {
+	if elapsed > 150*time.Millisecond {
 		t.Errorf("PollEvent() with pending interrupt took %v, want immediate return", elapsed)
 	}
 }

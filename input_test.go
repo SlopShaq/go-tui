@@ -43,20 +43,26 @@ func TestInput_NewInput_Defaults(t *testing.T) {
 }
 
 func TestInput_BindApp_BindsAllStates(t *testing.T) {
-	inp := NewInput()
-	inp.BindApp(testApp)
-
-	states := map[string]*App{
-		"text":      inp.text.app,
-		"cursorPos": inp.cursorPos.app,
-		"scrollPos": inp.scrollPos.app,
-		"blink":     inp.blink.app,
-		"focused":   inp.focused.app,
+	type tc struct {
+		stateApp func(*Input) *App
 	}
-	for name, app := range states {
-		if app != testApp {
-			t.Errorf("state %s not bound to testApp", name)
-		}
+
+	tests := map[string]tc{
+		"text":      {stateApp: func(i *Input) *App { return i.text.app }},
+		"cursorPos": {stateApp: func(i *Input) *App { return i.cursorPos.app }},
+		"scrollPos": {stateApp: func(i *Input) *App { return i.scrollPos.app }},
+		"blink":     {stateApp: func(i *Input) *App { return i.blink.app }},
+		"focused":   {stateApp: func(i *Input) *App { return i.focused.app }},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			inp := NewInput()
+			inp.BindApp(testApp)
+			if tt.stateApp(inp) != testApp {
+				t.Errorf("state %s not bound to testApp", name)
+			}
+		})
 	}
 }
 

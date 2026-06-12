@@ -2,7 +2,7 @@ package tui
 
 import "testing"
 
-func TestEscBuilder_SyncUpdate(t *testing.T) {
+func TestEscBuilder_ScreenSequences(t *testing.T) {
 	type tc struct {
 		fn       func(*escBuilder)
 		expected string
@@ -17,6 +17,10 @@ func TestEscBuilder_SyncUpdate(t *testing.T) {
 			fn:       func(e *escBuilder) { e.EndSyncUpdate() },
 			expected: "\x1b[?2026l",
 		},
+		"clear to end of screen": {
+			fn:       func(e *escBuilder) { e.ClearToEndOfScreen() },
+			expected: "\x1b[J",
+		},
 	}
 
 	for name, tt := range tests {
@@ -27,15 +31,6 @@ func TestEscBuilder_SyncUpdate(t *testing.T) {
 				t.Errorf("got %q, want %q", e.Bytes(), tt.expected)
 			}
 		})
-	}
-}
-
-func TestEscBuilder_ClearToEndOfScreen(t *testing.T) {
-	e := newEscBuilder(64)
-	e.ClearToEndOfScreen()
-	expected := "\x1b[J"
-	if string(e.Bytes()) != expected {
-		t.Errorf("ClearToEndOfScreen() = %q, want %q", e.Bytes(), expected)
 	}
 }
 

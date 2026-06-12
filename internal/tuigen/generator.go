@@ -356,13 +356,20 @@ func (g *Generator) loopIndexExpr(baseIndex int) string {
 	if len(g.loopIndexStack) == 0 {
 		return ""
 	}
-	// For a single loop level: baseIndex*1000000 + loopIdx
-	// For nested loops: combine all indices with large multipliers
-	// This ensures unique keys for each (component call site, loop iteration) combination
-	expr := fmt.Sprintf("%d", baseIndex)
+	// For a single loop level: (baseIndex+1)*1000000 + loopIdx
+	// For nested loops, each level re-multiplies the accumulated expression, e.g.
+	// ((baseIndex+1)*1000000 + i)*1000000 + j, so every (call site, iteration
+	// combination) gets a unique key as long as loops stay under 1000000
+	// iterations. The +1 keeps the multiplier from cancelling when baseIndex is 0;
+	// otherwise the loop's keys collapse to the bare loop index (0, 1, 2, ...) and
+	// collide with the small sequential keys of components mounted outside the
+	// loop (issue #88). The parentheses make the multipliers compound; without
+	// them Go precedence flattens the expression and nested-loop keys collide
+	// with sibling loops' keys.
+	expr := fmt.Sprintf("%d", baseIndex+1)
 	multiplier := 1000000
 	for _, idxVar := range g.loopIndexStack {
-		expr = fmt.Sprintf("%s*%d+%s", expr, multiplier, idxVar)
+		expr = fmt.Sprintf("(%s)*%d+%s", expr, multiplier, idxVar)
 	}
 	return expr
 }

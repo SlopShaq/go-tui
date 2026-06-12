@@ -11,10 +11,12 @@ import (
 
 // mountIndexRe extracts the index expression from generated app.Mount /
 // app.MountPersistent calls.
-var mountIndexRe = regexp.MustCompile(`app\.Mount(?:Persistent)?\(c, (.+), func\(\) tui\.Component \{`)
+var mountIndexRe = regexp.MustCompile(`app\.Mount(?:Persistent)?\(\w+, (.+), func\(\) tui\.Component \{`)
 
 // evalMountKey evaluates a generated mount index expression after substituting
-// concrete iteration values for loop index variables.
+// concrete iteration values for loop index variables. Keys must fit in int64,
+// which mirrors the generated code's int arithmetic and caps practical loop
+// nesting at three levels (a fourth level's keys reach ~1e24 and overflow).
 func evalMountKey(t *testing.T, expr string, vars map[string]int) int64 {
 	t.Helper()
 	for name, val := range vars {
@@ -27,7 +29,7 @@ func evalMountKey(t *testing.T, expr string, vars map[string]int) int64 {
 	}
 	v, ok := constant.Int64Val(tv.Value)
 	if !ok {
-		t.Fatalf("mount key %q did not evaluate to an integer constant", expr)
+		t.Fatalf("mount key %q did not evaluate to an int64 (likely overflow from too-deep loop nesting)", expr)
 	}
 	return v
 }
